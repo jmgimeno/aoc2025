@@ -20,15 +20,16 @@ fn main() {
 }
 
 fn part1(input: &str) -> i32 {
-    let mut position: i32 = 50;
+    let mut position: i32 = 50; // always in range [0, 100)
     let mut password = 0;
-    for (dir, step) in parse_moves(input) {
+    for (dir, steps) in parse_moves(input) {
         match dir {
-            'R' => position += step,
-            'L' => position -= step,
+            'R' => position += steps % 100,
+            'L' => position -= steps % 100,
             _ => panic!("Invalid direction: {}", dir),
         }
-        if position % 100 == 0 {
+        position = position.rem_euclid(100);
+        if position == 0 {
             password += 1;
         }
     }
@@ -36,29 +37,20 @@ fn part1(input: &str) -> i32 {
 }
 
 fn part2(input: &str) -> i32 {
-    let mut position: i32 = 50;
+    let mut position: i32 = 50; // always in range [0, 100)
     let mut password = 0;
-    for (dir, step) in parse_moves(input) {
-        let whole = step / 100;
-        let small = step % 100;
-        password += whole;
+    for (dir, steps) in parse_moves(input) {
         let old = position;
-
         match dir {
-            'R' => {
-                if old + small >= 100 {
-                    password += 1;
-                }
-                position = (old + small) % 100;
-            }
-            'L' => {
-                if old != 0 && old - small <= 0 {
-                    password += 1;
-                }
-                position = ((old - small) % 100 + 100) % 100;
-            }
+            'R' => position += steps % 100,
+            'L' => position -= steps % 100,
             _ => panic!("Invalid direction: {}", dir),
         }
+        password += steps / 100;
+        if position >= 100 || (old != 0 && position <= 0) {
+            password += 1;
+        }
+        position = position.rem_euclid(100);
     }
     password
 }
