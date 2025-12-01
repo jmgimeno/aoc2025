@@ -55,7 +55,7 @@ fn download_all(client: &Client, cookie: &String) {
 }
 
 fn download_day(day: u32, client: &Client, cookie: &String) {
-    let url = format!("https://adventofcode.com/2016/day/{}/input", day);
+    let url = format!("https://adventofcode.com/2025/day/{}/input", day);
     let resp = client
         .get(&url)
         .header("Cookie", format!("session={}", cookie))
