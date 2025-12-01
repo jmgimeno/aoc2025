@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["common", "template", "downloader"]
+members = ["common", "day01", "downloader", "template"]
 resolver = "3"
 
 [workspace.dependencies]
