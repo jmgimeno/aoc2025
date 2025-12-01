@@ -33,7 +33,32 @@ fn part1(input: &str) -> i32 {
 }
 
 fn part2(input: &str) -> i32 {
-    0
+    let mut position = 50;
+    let mut password = 0;
+    let input = parse_input(input);
+    for movement in input {
+        let direction = &movement[0..1];
+        let step = &movement[1..].parse::<i32>().unwrap();
+        let old_position = position;
+        password += step / 100;
+        match direction {
+            "R" => {
+                position += step % 100;
+                if position >= 100 {
+                    password += 1;
+                }
+            },
+            "L" => {
+                position -= step % 100;
+                if old_position != 0 && position <= 0 {
+                    password += 1;
+                }
+            },
+            _ => panic!("Invalid direction: {}", direction),
+        }
+        position = (position % 100 + 100) % 100;
+    }
+    password
 }
 
 #[cfg(test)]
@@ -59,6 +84,6 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(&INPUT), 20);
+        assert_eq!(part2(&INPUT), 5872);
     }
 }
