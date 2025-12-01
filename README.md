@@ -1,6 +1,6 @@
 # Advent of Code 2025
 
-- Day 1: 
+- Day 1: Secret Entrance
 - Day 2:
 - Day 3:
 - Day 4:
