@@ -4,8 +4,14 @@ use once_cell::sync::Lazy;
 static INPUT: Lazy<String> =
     Lazy::new(|| read_file_as_string("data/day01.txt").expect("Failed to load input"));
 
-fn parse_input(input: &str) -> Vec<String> {
-    input.lines().map(|l| l.to_string()).collect()
+fn parse_moves(input: &str) -> Vec<(char, i32)> {
+    input
+        .lines()
+        .map(|l| {
+            let (d, s) = l.split_at(1);
+            (d.chars().next().unwrap(), s.parse::<i32>().unwrap())
+        })
+        .collect()
 }
 
 fn main() {
@@ -14,16 +20,13 @@ fn main() {
 }
 
 fn part1(input: &str) -> i32 {
-    let mut position = 50;
+    let mut position: i32 = 50;
     let mut password = 0;
-    let input = parse_input(input);
-    for movement in input {
-        let direction = &movement[0..1];
-        let step = &movement[1..].parse::<i32>().unwrap();
-        match direction {
-            "R" => position += step,
-            "L" => position -= step,
-            _ => panic!("Invalid direction: {}", direction),
+    for (dir, step) in parse_moves(input) {
+        match dir {
+            'R' => position += step,
+            'L' => position -= step,
+            _ => panic!("Invalid direction: {}", dir),
         }
         if position % 100 == 0 {
             password += 1;
@@ -33,30 +36,29 @@ fn part1(input: &str) -> i32 {
 }
 
 fn part2(input: &str) -> i32 {
-    let mut position = 50;
+    let mut position: i32 = 50;
     let mut password = 0;
-    let input = parse_input(input);
-    for movement in input {
-        let direction = &movement[0..1];
-        let step = &movement[1..].parse::<i32>().unwrap();
-        let old_position = position;
-        password += step / 100;
-        match direction {
-            "R" => {
-                position += step % 100;
-                if position >= 100 {
+    for (dir, step) in parse_moves(input) {
+        let whole = step / 100;
+        let small = step % 100;
+        password += whole;
+        let old = position;
+
+        match dir {
+            'R' => {
+                if old + small >= 100 {
                     password += 1;
                 }
-            },
-            "L" => {
-                position -= step % 100;
-                if old_position != 0 && position <= 0 {
+                position = (old + small) % 100;
+            }
+            'L' => {
+                if old != 0 && old - small <= 0 {
                     password += 1;
                 }
-            },
-            _ => panic!("Invalid direction: {}", direction),
+                position = ((old - small) % 100 + 100) % 100;
+            }
+            _ => panic!("Invalid direction: {}", dir),
         }
-        position = (position % 100 + 100) % 100;
     }
     password
 }
