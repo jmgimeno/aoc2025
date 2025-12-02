@@ -97,12 +97,7 @@ impl Range {
 fn is_invalid_part2(ip: u64) -> bool {
     let s = ip.to_string();
     let l = s.len();
-    for i in (1..=l / 2).filter(|i| l % i == 0) {
-        if all_chunks_equal(&s, i) {
-            return true;
-        }
-    }
-    false
+    (1..=l / 2).filter(|i| l % i == 0).any(|cs| all_chunks_equal(&s, cs))
 }
 
 fn all_chunks_equal(s: &str, size: usize) -> bool {
