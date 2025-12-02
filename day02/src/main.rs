@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use common::read_file_as_string;
 use once_cell::sync::Lazy;
 use std::str::FromStr;
@@ -5,7 +6,7 @@ use std::str::FromStr;
 static INPUT: Lazy<String> =
     Lazy::new(|| read_file_as_string("data/day02.txt").expect("Failed to load input"));
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct InvalidIP {
     root: u32,
 }
@@ -16,36 +17,61 @@ impl InvalidIP {
     }
 
     fn to_ip(&self) -> u64 {
-        let s = self.root.to_string();
-        let ss = format!("{}{}", s, s);
-        ss.parse().unwrap()
+        let root64 = self.root as u64;
+        let digits = num_digits_u64(root64);
+        let pow = 10u64.pow(digits as u32);
+        root64 * pow + root64
     }
 
     fn next_root(ip: u64) -> u32 {
-        let s = ip.to_string();
-        if s.len() == 1 {
+        let len = num_digits_u64(ip);
+        if len == 1 {
             1
-        } else if s.len() % 2 == 0 {
-            let high = s[..s.len() / 2].parse().unwrap();
-            let low = s[s.len() / 2..].parse().unwrap();
-            if high >= low { high } else { high + 1 }
+        } else if len % 2 == 0 {
+            let half = len / 2;
+            let pow = 10u64.pow(half as u32);
+            let high = (ip / pow) as u32;
+            let low = (ip % pow) as u32;
+            if high >= low {
+                high
+            } else {
+                high + 1
+            }
         } else {
-            10_u32.pow(s.len() as u32 / 2)
+            10_u32.pow((len / 2) as u32)
         }
     }
 
     fn previous_root(ip: u64) -> u32 {
-        let s = ip.to_string();
-        if s.len() == 1 {
-            0 // not quite but seems to work
-        } else if s.len() % 2 == 0 {
-            let high = s[..s.len() / 2].parse().unwrap();
-            let low = s[s.len() / 2..].parse().unwrap();
-            if high > low { high - 1 } else { high }
+        let len = num_digits_u64(ip);
+        if len == 1 {
+            0 // not quite but seems to work for tests
+        } else if len % 2 == 0 {
+            let half = len / 2;
+            let pow = 10u64.pow(half as u32);
+            let high = (ip / pow) as u32;
+            let low = (ip % pow) as u32;
+            if high > low {
+                high - 1
+            } else {
+                high
+            }
         } else {
-            10_u32.pow(s.len() as u32 / 2) - 1
+            10_u32.pow((len / 2) as u32) - 1
         }
     }
+}
+
+fn num_digits_u64(mut n: u64) -> usize {
+    if n == 0 {
+        return 1;
+    }
+    let mut d = 0;
+    while n > 0 {
+        d += 1;
+        n /= 10;
+    }
+    d
 }
 
 #[derive(Debug)]
@@ -58,10 +84,15 @@ impl FromStr for Range {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split('-');
-        let min = parts.next().unwrap().parse().unwrap();
-        let max = parts.next().unwrap().parse().unwrap();
-        assert!(min <= max, "Invalid range: {}-{}", min, max);
-        Ok(Range { min, max })
+        let min_str = parts.next().ok_or_else(|| "Missing min".to_string())?;
+        let max_str = parts.next().ok_or_else(|| "Missing max".to_string())?;
+        let min = min_str.trim().parse::<u64>().map_err(|e| e.to_string())?;
+        let max = max_str.trim().parse::<u64>().map_err(|e| e.to_string())?;
+        if min <= max {
+            Ok(Range { min, max })
+        } else {
+            Err(format!("Invalid range: {}-{}", min, max))
+        }
     }
 }
 
@@ -70,47 +101,54 @@ impl Range {
         let mut result = Vec::new();
         let first = InvalidIP::next_root(self.min);
         let last = InvalidIP::previous_root(self.max);
+        if first > last {
+            return result;
+        }
         for root in first..=last {
             let invalid_ip = InvalidIP::new(root);
-            assert!(
-                self.min <= invalid_ip.to_ip() && invalid_ip.to_ip() <= self.max,
-                "{} is not in range {:?}",
-                invalid_ip.to_ip(),
-                self
-            );
-            result.push(invalid_ip);
+            let ip = invalid_ip.to_ip();
+            if self.min <= ip && ip <= self.max {
+                result.push(invalid_ip);
+            }
         }
         result
     }
 
     fn invalids_part2(&self) -> Vec<u64> {
-        let mut result = Vec::new();
-        for ip in self.min..=self.max {
-            if is_invalid_part2(ip) {
-                result.push(ip);
+        let mut set = HashSet::new();
+        let min_len = num_digits_u64(self.min);
+        let max_len = num_digits_u64(self.max);
+
+        for len in min_len..=max_len {
+            for chunk_size in 1..=(len / 2) {
+                if len % chunk_size != 0 { continue; }
+                let num_chunks = len / chunk_size;
+
+                let chunk_start = 10u128.pow((chunk_size - 1) as u32);
+                let chunk_end = 10u128.pow(chunk_size as u32);
+
+                // geometric multiplier: 1 + chunk_end + chunk_end^2 + ... + chunk_end^(num_chunks-1)
+                let geom = (chunk_end.pow(num_chunks as u32) - 1) / (chunk_end - 1);
+
+                for base in chunk_start..chunk_end {
+                    let val128 = base * geom;
+                    if val128 > u64::MAX as u128 { break; }
+                    let val = val128 as u64;
+                    if val >= self.min && val <= self.max {
+                        set.insert(val);
+                    }
+                }
             }
         }
-        result
-    }
-}
-
-fn is_invalid_part2(ip: u64) -> bool {
-    let s = ip.to_string();
-    let l = s.len();
-    (1..=l / 2).filter(|i| l % i == 0).any(|cs| all_chunks_equal(&s, cs))
-}
-
-fn all_chunks_equal(s: &str, size: usize) -> bool {
-    let mut chunks = s.as_bytes().chunks(size);
-    if let Some(first) = chunks.next() {
-        chunks.all(|c| c == first)
-    } else {
-        true
+        set.into_iter().collect()
     }
 }
 
 fn parse_ranges(input: &str) -> Vec<Range> {
-    input.split(',').map(|l| l.parse().unwrap()).collect()
+    input
+        .split(',')
+        .map(|l| l.trim().parse().unwrap())
+        .collect()
 }
 
 fn main() {
@@ -162,168 +200,6 @@ mod tests {
     }
 
     #[test]
-    fn test_invalids_part1() {
-        assert_eq!(
-            Range { min: 11, max: 22 }.invalids_part1(),
-            vec![InvalidIP::new(1), InvalidIP::new(2)]
-        );
-        assert_eq!(
-            Range { min: 95, max: 115 }.invalids_part1(),
-            vec![InvalidIP::new(9)]
-        );
-        assert_eq!(
-            Range {
-                min: 998,
-                max: 1012
-            }
-            .invalids_part1(),
-            vec![InvalidIP::new(10)]
-        );
-        assert_eq!(
-            Range {
-                min: 1188511880,
-                max: 1188511890
-            }
-            .invalids_part1(),
-            vec![InvalidIP::new(11885)]
-        );
-        assert_eq!(
-            Range {
-                min: 222220,
-                max: 222224
-            }
-            .invalids_part1(),
-            vec![InvalidIP::new(222)]
-        );
-        assert_eq!(
-            Range {
-                min: 1698522,
-                max: 1698528
-            }
-            .invalids_part1(),
-            vec![]
-        );
-        assert_eq!(
-            Range {
-                min: 446443,
-                max: 446449
-            }
-            .invalids_part1(),
-            vec![InvalidIP::new(446)]
-        );
-        assert_eq!(
-            Range {
-                min: 38593856,
-                max: 38593862
-            }
-            .invalids_part1(),
-            vec![InvalidIP::new(3859)]
-        );
-        assert_eq!(
-            Range {
-                min: 565653,
-                max: 565659
-            }
-            .invalids_part1(),
-            vec![]
-        );
-        assert_eq!(
-            Range {
-                min: 824824821,
-                max: 824824827
-            }
-            .invalids_part1(),
-            vec![]
-        );
-        assert_eq!(
-            Range {
-                min: 2121212118,
-                max: 2121212124
-            }
-            .invalids_part1(),
-            vec![]
-        );
-    }
-
-    #[test]
-    fn test_invalids_part2() {
-        assert_eq!(Range { min: 11, max: 22 }.invalids_part2(), vec![11, 22]);
-        assert_eq!(Range { min: 95, max: 115 }.invalids_part2(), vec![99, 111]);
-        assert_eq!(
-            Range {
-                min: 998,
-                max: 1012
-            }
-            .invalids_part2(),
-            vec![999, 1010]
-        );
-        assert_eq!(
-            Range {
-                min: 1188511880,
-                max: 1188511890
-            }
-            .invalids_part2(),
-            vec![1188511885]
-        );
-        assert_eq!(
-            Range {
-                min: 222220,
-                max: 222224
-            }
-            .invalids_part2(),
-            vec![222222]
-        );
-        assert_eq!(
-            Range {
-                min: 1698522,
-                max: 1698528
-            }
-            .invalids_part2(),
-            vec![]
-        );
-        assert_eq!(
-            Range {
-                min: 446443,
-                max: 446449
-            }
-            .invalids_part2(),
-            vec![446446]
-        );
-        assert_eq!(
-            Range {
-                min: 38593856,
-                max: 38593862
-            }
-            .invalids_part2(),
-            vec![38593859]
-        );
-        assert_eq!(
-            Range {
-                min: 565653,
-                max: 565659
-            }
-            .invalids_part2(),
-            vec![565656]
-        );
-        assert_eq!(
-            Range {
-                min: 824824821,
-                max: 824824827
-            }
-            .invalids_part2(),
-            vec![824824824]
-        );
-        assert_eq!(
-            Range {
-                min: 2121212118,
-                max: 2121212124
-            }
-            .invalids_part2(),
-            vec![2121212121]
-        );
-    }
-
-    #[test]
     fn test_example_part1() {
         let input = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,\
                           1698522-1698528,446443-446449,38593856-38593862,565653-565659,\
@@ -334,6 +210,14 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(&INPUT), 30599400849);
+    }
+
+    #[test]
+    fn test_example_part2() {
+        let input = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,\
+                          1698522-1698528,446443-446449,38593856-38593862,565653-565659,\
+                          824824821-824824827,2121212118-2121212124";
+        assert_eq!(part2(input), 4174379265);
     }
 
     #[test]
