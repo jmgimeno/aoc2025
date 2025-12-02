@@ -128,7 +128,7 @@ impl Range {
                 let chunk_end = 10u128.pow(chunk_size as u32);
 
                 // geometric multiplier: 1 + chunk_end + chunk_end^2 + ... + chunk_end^(num_chunks-1)
-                // geom sets to 1 bits 0, chunk_size, chunk_size*2, chunk_size*3, ... chunk_size*(num_chunks-1)
+                // geom sets to 1 digits 0, chunk_size, chunk_size*2, chunk_size*3, ... chunk_size*(num_chunks-1)
                 let geom = (chunk_end.pow(num_chunks as u32) - 1) / (chunk_end - 1);
 
                 for base in chunk_start..chunk_end {
