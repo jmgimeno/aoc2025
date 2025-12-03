@@ -79,26 +79,16 @@ fn part2(input: &[Bank]) -> u64 {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
     use super::*;
 
-    #[test]
-    fn test_examples_part1() {
-        assert_eq!(
-            "987654321111111".parse::<Bank>().unwrap().maximum_joltage(2),
-            98
-        );
-        assert_eq!(
-            "811111111111119".parse::<Bank>().unwrap().maximum_joltage(2),
-            89
-        );
-        assert_eq!(
-            "234234234234278".parse::<Bank>().unwrap().maximum_joltage(2),
-            78
-        );
-        assert_eq!(
-            "818181911112111".parse::<Bank>().unwrap().maximum_joltage(2),
-            92
-        );
+    #[rstest]
+    #[case("987654321111111", 98)]
+    #[case("811111111111119", 89)]
+    #[case("234234234234278", 78)]
+    #[case("818181911112111", 92)]
+    fn test_examples_part1(#[case] input: &str, #[case] expected: u64) {
+        assert_eq!(input.parse::<Bank>().unwrap().maximum_joltage(2), expected);
     }
 
     #[test]
@@ -106,24 +96,13 @@ mod tests {
         assert_eq!(part1(&INPUT), 17332);
     }
 
-    #[test]
-    fn test_examples_part2() {
-        assert_eq!(
-            "987654321111111".parse::<Bank>().unwrap().maximum_joltage(12),
-            987654321111
-        );
-        assert_eq!(
-            "811111111111119".parse::<Bank>().unwrap().maximum_joltage(12),
-            811111111119
-        );
-        assert_eq!(
-            "234234234234278".parse::<Bank>().unwrap().maximum_joltage(12),
-            434234234278
-        );
-        assert_eq!(
-            "818181911112111".parse::<Bank>().unwrap().maximum_joltage(12),
-            888911112111
-        );
+    #[rstest]
+    #[case("987654321111111", 987654321111)]
+    #[case("811111111111119", 811111111119)]
+    #[case("234234234234278", 434234234278)]
+    #[case("818181911112111", 888911112111)]
+    fn test_examples_part2(#[case] input: &str, #[case] expected: u64) {
+        assert_eq!(input.parse::<Bank>().unwrap().maximum_joltage(12), expected);
     }
 
     #[test]

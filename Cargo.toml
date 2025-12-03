@@ -10,3 +10,4 @@ resolver = "3"
 [workspace.dependencies]
 common = { path = "common" }
 once_cell = "1.21.3"
+rstest = "0.26.1"
