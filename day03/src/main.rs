@@ -23,30 +23,32 @@ impl FromStr for Bank {
 
 impl Bank {
     fn maximum_joltage(&self, window_len: usize) -> u64 {
-        let mut max = (0..window_len)
-            .map(|i| self.batteries[i].joltage)
-            .collect::<Vec<_>>();
-        for b in &self.batteries[window_len..] {
-            max.push(b.joltage);
-            let mut removed = false;
-            for i in 1..max.len() {
-                // I need to find if there is a position in the prefix before i that
-                // has a value that is lower than max[i]
-                match (0..i).rev().find(|j| max[*j] < max[i]) {
-                    Some(j) => {
-                        removed = true;
-                        max.remove(j);
-                        break;
-                    }
-                    None => (),
-                }
+        // Number of digits we may remove to end up with `window_len` digits.
+        let mut removals_remaining = self.batteries.len() - window_len;
+        // initial_removals = self.batteries.len() - window_len
+        // Loop invariant (after processing first `i` items):
+        //  - `removals_used = initial_removals - removals_remaining`
+        //  - `stack.len() == i - removals_used`
+        //  - `stack` is the lexicographically largest subsequence obtainable from the
+        //    processed prefix consistent with those `removals_used`.
+        let mut stack: Vec<u32> = Vec::with_capacity(window_len);
+
+        for battery in &self.batteries {
+            let value = battery.joltage;
+            // While we can still remove digits and the last digit in `stack` is smaller than
+            // the incoming `value`, pop it to make a larger number (greedy choice).
+            while removals_remaining > 0 && !stack.is_empty() && *stack.last().unwrap() < value {
+                stack.pop();
+                removals_remaining -= 1;
             }
-            if !removed {
-                max.pop();
-            }
+            stack.push(value);
+        }
+        // If we didn't remove enough (or window_len < n), truncate to the desired length.
+        if stack.len() > window_len {
+            stack.truncate(window_len);
         }
 
-        max.iter().fold(0, |acc, &x| 10 * acc + x as u64)
+        stack.iter().fold(0u64, |acc, &x| acc * 10 + x as u64)
     }
 }
 
@@ -79,8 +81,8 @@ fn part2(input: &[Bank]) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
     use super::*;
+    use rstest::rstest;
 
     #[rstest]
     #[case("987654321111111", 98)]
