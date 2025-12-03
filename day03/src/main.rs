@@ -31,7 +31,7 @@ impl Bank {
             for i in 1..max.len() {
                 // I need to find if there is a position in the prefix before i that
                 // has a value that is lower than max[i]
-                if let Some(j) = (0..i).rev().find(|j| max[*j] < max[i]) {
+                if let Some(j) = (0..i).rfind(|j| max[*j] < max[i]) {
                     max.remove(j);
                     continue 'outer;
                 }
