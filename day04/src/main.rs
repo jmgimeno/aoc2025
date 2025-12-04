@@ -1,25 +1,49 @@
 use common::read_file_as_lines;
 use once_cell::sync::Lazy;
 
-static INPUT: Lazy<Diagram> = Lazy::new(|| Diagram {
-    lines: read_file_as_lines("data/day04.txt").expect("Failed to load input"),
+const ACCESSIBLE_LIMIT: usize = 4;
+const PAPER: char = '@';
+
+static INPUT: Lazy<Diagram> = Lazy::new(|| {
+    let lines = read_file_as_lines("data/day04.txt").expect("Failed to load input");
+    Diagram::from_strings(lines)
 });
 
 #[derive(Debug, Clone)]
 struct Diagram {
-    lines: Vec<String>,
+    // true == '@', false == '.'
+    grid: Vec<Vec<bool>>,
 }
 
 impl Diagram {
+    pub fn from_strings(lines: Vec<String>) -> Self {
+        Diagram {
+            grid: lines
+                .into_iter()
+                .map(|s| s.chars().map(|c| c == PAPER).collect::<Vec<bool>>())
+                .collect::<Vec<Vec<bool>>>(),
+        }
+    }
+
+    fn height(&self) -> usize {
+        self.grid.len()
+    }
+
+    fn width(&self) -> usize {
+        if self.grid.is_empty() {
+            0
+        } else {
+            self.grid[0].len()
+        }
+    }
+
     fn is_paper(&self, x: isize, y: isize) -> bool {
         if y < 0 || x < 0 {
             false
-        } else if y as usize >= self.lines.len()
-            || x as usize >= self.lines[y as usize].chars().count()
-        {
+        } else if y as usize >= self.height() || x as usize >= self.width() {
             false
         } else {
-            self.lines[y as usize].chars().nth(x as usize).unwrap() == '@'
+            self.grid[y as usize][x as usize]
         }
     }
 
@@ -39,23 +63,22 @@ impl Diagram {
     }
 
     fn accessible_papers(&self) -> Vec<(usize, usize)> {
-        let mut accesible = Vec::new();
-        for y in 0..self.lines.len() {
-            for x in 0..self.lines[y].chars().count() {
-                if self.is_paper(x as isize, y as isize) && self.count_neighbors(x, y) < 4 {
-                    accesible.push((x, y));
+        let mut accessible = Vec::new();
+        for y in 0..self.height() {
+            for x in 0..self.width() {
+                if self.is_paper(x as isize, y as isize)
+                    && self.count_neighbors(x, y) < ACCESSIBLE_LIMIT
+                {
+                    accessible.push((x, y));
                 }
             }
         }
-        accesible
+        accessible
     }
 
-    fn remove_accesible_papers(&mut self, to_remove: &[(usize, usize)]) {
+    fn remove_accessible_papers(&mut self, to_remove: &[(usize, usize)]) {
         for (x, y) in to_remove {
-            let line = std::mem::take(&mut self.lines[*y]); // take ownership
-            let mut bytes = line.into_bytes();
-            bytes[*x] = b'.';
-            self.lines[*y] = String::from_utf8(bytes).unwrap();
+            self.grid[*y][*x] = false;
         }
     }
 }
@@ -78,7 +101,7 @@ fn part2(diagram: &Diagram) -> usize {
             break total_removed;
         }
         total_removed += to_remove.len();
-        diagram.remove_accesible_papers(&to_remove);
+        diagram.remove_accessible_papers(&to_remove);
     }
 }
 
@@ -103,7 +126,7 @@ mod tests {
         .iter()
         .map(|s| s.to_string())
         .collect();
-        let diagram = Diagram { lines };
+        let diagram = Diagram::from_strings(lines);
         assert_eq!(part1(&diagram), 13);
     }
 
@@ -129,7 +152,7 @@ mod tests {
         .iter()
         .map(|s| s.to_string())
         .collect();
-        let diagram = Diagram { lines };
+        let diagram = Diagram::from_strings(lines);
         assert_eq!(part2(&diagram), 43);
     }
 
