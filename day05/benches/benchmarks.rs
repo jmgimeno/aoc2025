@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use day05::day05::{INPUT, part1, part2};
 
 fn main() {
