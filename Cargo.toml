@@ -1,14 +1,24 @@
 [package]
+edition = "2024"
 name = "aoc2025"
 version = "0.1.0"
-edition = "2024"
 
 [workspace]
-members = ["common", "day??", "downloader", "template"]
+members = [
+    "common",
+    "day01",
+    "day02",
+    "day03",
+    "day04",
+    "day05",
+    "downloader",
+]
 default-members = ["day??"]
 resolver = "3"
 
 [workspace.dependencies]
-common = { path = "common" }
 once_cell = "1.21.3"
 rstest = "0.26.1"
+
+[workspace.dependencies.common]
+path = "common"

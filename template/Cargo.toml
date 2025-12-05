@@ -1,8 +1,8 @@
 [package]
-name = "template"
+name = "{{project-name}}"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-once_cell = { workspace = true }
-common = { workspace = true }
+once_cell.workspace = true
+common.workspace = true
