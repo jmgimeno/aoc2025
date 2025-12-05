@@ -17,8 +17,7 @@ default-members = ["day??"]
 resolver = "3"
 
 [workspace.dependencies]
+common = { path = "common" }
+divan = "0.1.21"
 once_cell = "1.21.3"
 rstest = "0.26.1"
-
-[workspace.dependencies.common]
-path = "common"
