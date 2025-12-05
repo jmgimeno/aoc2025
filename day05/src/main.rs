@@ -98,6 +98,13 @@ impl DB {
         }
         fresh
     }
+
+    fn total_fresh(&self) -> u64 {
+        // assumed a normalized DB
+        self.ranges.iter()
+            .map(|(begin, end)| end - begin + 1)
+            .sum()
+    }
 }
 
 fn main() {
@@ -107,12 +114,11 @@ fn main() {
 
 // 548 too low
 fn part1(input: &DB) -> usize {
-    let norm = input.normalize();
-    norm.fresh_ingredients()
+    input.normalize().fresh_ingredients()
 }
 
-fn part2(_input: &DB) -> usize {
-    0
+fn part2(input: &DB) -> u64 {
+    input.normalize().total_fresh()
 }
 
 #[cfg(test)]
@@ -141,7 +147,23 @@ mod tests {
     }
 
     #[test]
+    fn test_exaple_part2() {
+        let input = "3-5
+10-14
+16-20
+12-18
+
+1
+5
+8
+11
+17
+32";
+        assert_eq!(part2(&DB::from_str(input).unwrap()), 14);
+    }
+
+    #[test]
     fn test_part2() {
-        assert_eq!(part2(&INPUT), 20);
+        assert_eq!(part2(&INPUT), 338693411431456);
     }
 }
