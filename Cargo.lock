@@ -234,6 +234,7 @@ name = "day03"
 version = "0.1.0"
 dependencies = [
  "common",
+ "divan",
  "once_cell",
  "rstest",
 ]
