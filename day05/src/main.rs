@@ -2,15 +2,16 @@ use common::read_file_as_string;
 use once_cell::sync::Lazy;
 use std::str::FromStr;
 
-static INPUT: Lazy<DB> =
-    Lazy::new(|| {
-        let input = read_file_as_string("data/day05.txt").expect("Failed to load input");
-        input.parse().expect("Failed to parse input")}
-    );
+static INPUT: Lazy<DB> = Lazy::new(|| {
+    let input = read_file_as_string("data/day05.txt").expect("Failed to load input");
+    input.parse().expect("Failed to parse input")
+});
 
 #[derive(Debug)]
 struct DB {
+    // ranges are non-overlapping and sorted
     ranges: Vec<(u64, u64)>,
+    // available is sorted
     available: Vec<u64>,
 }
 
@@ -45,43 +46,39 @@ impl FromStr for DB {
                 ranges.push((begin, end));
             }
         }
-        Ok(DB { ranges, available })
+        available.sort_unstable();
+        Ok(DB {
+            ranges: non_overlapping_and_sorted(ranges),
+            available,
+        })
     }
 }
 
-impl DB {
-    fn normalize(&self) -> DB {
-        let mut sorted_ranges = self.ranges.clone();
-        sorted_ranges.sort();
-        let mut current = sorted_ranges[0];
-        let mut non_averlapping_ranges = Vec::new();
-        for next in sorted_ranges.iter().skip(1) {
-            // current.0 <= next.0 because sorted
-            if next.0 <= current.1 {
-                // current overlaps with range
-                current.1 = u64::max(current.1, next.1);
-            } else {
-                non_averlapping_ranges.push(current);
-                current = *next;
-            }
-        }
-        non_averlapping_ranges.push(current);
-
-        let mut sorted_available = self.available.clone();
-        sorted_available.sort();
-
-        DB {
-            ranges: non_averlapping_ranges,
-            available: sorted_available,
+fn non_overlapping_and_sorted(ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
+    let mut sorted_ranges = ranges.clone();
+    sorted_ranges.sort_unstable();
+    let mut current = sorted_ranges[0];
+    let mut non_averlapping_ranges = Vec::new();
+    for next in sorted_ranges.iter().skip(1) {
+        // current.0 <= next.0 because sorted
+        if next.0 <= current.1 {
+            // current overlaps with range
+            current.1 = u64::max(current.1, next.1);
+        } else {
+            non_averlapping_ranges.push(current);
+            current = *next;
         }
     }
+    non_averlapping_ranges.push(current);
+    non_averlapping_ranges
+}
 
+impl DB {
     fn fresh_ingredients(&self) -> usize {
-        // assumes a normalized DB
         let mut i = 0;
         let mut j = 0;
         let mut fresh = 0;
-        while i < self.available.len()  && j < self.ranges.len() {
+        while i < self.available.len() && j < self.ranges.len() {
             let at = self.available[i];
             let (begin, end) = self.ranges[j];
             if at < begin {
@@ -100,10 +97,7 @@ impl DB {
     }
 
     fn total_fresh(&self) -> u64 {
-        // assumed a normalized DB
-        self.ranges.iter()
-            .map(|(begin, end)| end - begin + 1)
-            .sum()
+        self.ranges.iter().map(|(begin, end)| end - begin + 1).sum()
     }
 }
 
@@ -114,11 +108,11 @@ fn main() {
 
 // 548 too low
 fn part1(input: &DB) -> usize {
-    input.normalize().fresh_ingredients()
+    input.fresh_ingredients()
 }
 
 fn part2(input: &DB) -> u64 {
-    input.normalize().total_fresh()
+    input.total_fresh()
 }
 
 #[cfg(test)]
