@@ -5,7 +5,6 @@
       <sourceFolder url="file://$MODULE_DIR$/common/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/downloader/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/template/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day01/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day02/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day03/src" isTestSource="false" />
