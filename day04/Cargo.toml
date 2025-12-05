@@ -6,3 +6,11 @@ edition = "2024"
 [dependencies]
 once_cell = { workspace = true }
 common = { workspace = true }
+
+[dev-dependencies]
+divan = { version = "0.1.21"}
+
+[[bench]]
+name = "day04-benchmarks"
+path = "benches/benchmarks.rs"
+harness = false
