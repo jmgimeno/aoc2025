@@ -218,6 +218,7 @@ name = "day01"
 version = "0.1.0"
 dependencies = [
  "common",
+ "divan",
  "once_cell",
 ]
 

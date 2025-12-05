@@ -11,6 +11,7 @@
       <sourceFolder url="file://$MODULE_DIR$/day03/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day04/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day05/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/day01/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/day02/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/day03/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/day04/benches" isTestSource="true" />
