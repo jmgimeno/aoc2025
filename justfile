@@ -6,3 +6,7 @@ test-all:
 
 create day:
     cargo generate --path ./template --name {{day}}
+    just download {{day}}
+
+download day:
+    cargo run -p downloader -- --day {{day}}

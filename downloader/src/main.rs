@@ -1,57 +1,42 @@
-use std::{env, io};
+use clap::Parser;
+use reqwest::blocking::Client;
 use std::fs;
 use std::io::Write;
-use reqwest::blocking::Client;
+use std::env;
+
+/// A program to download input for a day in AOC
+#[derive(Debug, Parser)]
+struct Args {
+    /// Day to download
+    #[clap(short, long)]
+    day: String,
+}
 
 fn main() {
     dotenv::dotenv().ok();
     let cookie = env::var("AOC_COOKIE").expect("AOC_COOKIE undefined");
+
+    let args = Args::parse();
+    let day = parse_day(&args.day).expect(&format!("could not parse day in {}", args.day));
 
     let client = Client::builder()
         .user_agent("github.com/jmgimeno/aoc2016 downloader")
         .build()
         .unwrap();
 
-    fs::create_dir_all("data").unwrap();
-
-    let day = loop {
-        match ask_for_day() {
-            Some(d) => break d,
-            None => {
-                eprintln!("Invalid input, please try again.");
-                continue;
-            }
-        }
-    };
+    fs::create_dir_all("data").expect("could not create output directory");
 
     download_day(day, &client, &cookie);
 }
 
-fn ask_for_day() -> Option<u32> {
-    print!("Enter day to download (1-12): ");
-    io::stdout().flush().unwrap();
-
-    let mut input = String::new();
-    if io::stdin().read_line(&mut input).is_err() {
-        eprintln!("Failed to read input.");
-        return None;
-    }
-
-    let day: u32 = match input.trim().parse() {
-        Ok(n) if (1..=12).contains(&n) => n,
-        _ => {
-            eprintln!("Invalid day. Please enter a number between 1 and 12.");
-            return None;
+fn parse_day(day: &str) -> Option<u32> {
+    day.strip_prefix("day").and_then(|rest| {
+        if rest.len() == 2 && rest.chars().all(|c| c.is_ascii_digit()) {
+            rest.parse::<u32>().ok()
+        } else {
+            None
         }
-    };
-    Some(day)
-}
-
-#[allow(unused)]
-fn download_all(client: &Client, cookie: &String) {
-    for day in 1..=12 {
-        download_day(day, client, cookie);
-    }
+    })
 }
 
 fn download_day(day: u32, client: &Client, cookie: &String) {

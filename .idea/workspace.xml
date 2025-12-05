@@ -33,17 +33,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e3389eef-d4d3-413f-84ad-4bbc2d7caba6" name="Changes" comment="added justfile and cargo-generate template">
-      <change afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/aoc2025.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.agent.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.ask.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.ask2agent.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/copilot.data.migration.edit.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloader/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/downloader/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/downloader/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/downloader/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/justfile" beforeDir="false" afterPath="$PROJECT_DIR$/justfile" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -276,7 +270,7 @@
       <workItem from="1764923052198" duration="207000" />
       <workItem from="1764923262948" duration="53000" />
       <workItem from="1764923318909" duration="192000" />
-      <workItem from="1764923513226" duration="367000" />
+      <workItem from="1764923513226" duration="2675000" />
     </task>
     <task id="LOCAL-00001" summary="initialize Advent of Code 2025 project structure with README, .gitignore, and Cargo.toml files">
       <option name="closed" value="true" />
@@ -462,7 +456,23 @@
       <option name="project" value="LOCAL" />
       <updated>1764923231588</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="added justfile and cargo-generate template">
+      <option name="closed" value="true" />
+      <created>1764923952464</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1764923952464</updated>
+    </task>
+    <task id="LOCAL-00025" summary="added justfile and cargo-generate template">
+      <option name="closed" value="true" />
+      <created>1764923969402</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1764923969402</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
