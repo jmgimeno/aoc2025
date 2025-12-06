@@ -1,12 +1,13 @@
-use std::str::FromStr;
 use common::read_file_as_lines;
 use once_cell::sync::Lazy;
+use std::str::FromStr;
 
 pub static INPUT: Lazy<Vec<String>> =
     Lazy::new(|| read_file_as_lines("data/day06.txt").expect("Failed to load input"));
 
 enum Operation {
-    Sum, Mult
+    Sum,
+    Mult,
 }
 
 impl FromStr for Operation {
@@ -24,21 +25,21 @@ impl FromStr for Operation {
 }
 
 pub fn part1(input: &[String]) -> u64 {
-    let numbers =
-        input[..input.len()-1].iter()
-            .map(|line| line.split_whitespace().map(|x| x.parse::<u64>().unwrap()).collect())
-            .collect::<Vec<Vec<_>>>();
-    let ops =
-        input[input.len()-1]
-            .split_whitespace()
-            .map(|x| x.parse::<Operation>().unwrap())
-            .collect::<Vec<_>>();
+    let numbers = input[..input.len() - 1]
+        .iter()
+        .map(|line| {
+            line.split_whitespace()
+                .map(|x| x.parse::<u64>().unwrap())
+                .collect()
+        })
+        .collect::<Vec<Vec<_>>>();
+    let ops = input[input.len() - 1]
+        .split_whitespace()
+        .map(|x| x.parse::<Operation>().unwrap())
+        .collect::<Vec<_>>();
     let mut total = 0;
     for i in 0..ops.len() {
-        let args =
-            numbers.iter()
-                .map(|row| row[i])
-                .collect::<Vec<_>>();
+        let args = numbers.iter().map(|row| row[i]).collect::<Vec<_>>();
         let result = match ops[i] {
             Operation::Sum => args.iter().sum::<u64>(),
             Operation::Mult => args.iter().product::<u64>(),
@@ -48,8 +49,42 @@ pub fn part1(input: &[String]) -> u64 {
     total
 }
 
-pub fn part2(_input: &[String]) -> usize {
-    todo!("day06 - part1")
+pub fn part2(input: &[String]) -> u64 {
+    let numbers = &input[..input.len() - 1];
+    assert!(numbers.iter().all(|row| row.len() == numbers[0].len()));
+    let len = numbers[0].len();
+    let transposed_numbers = (0..len)
+        .map(|i| {
+            numbers
+                .iter()
+                .map(|row| row.chars().nth(i).unwrap())
+                .collect::<String>()
+                .trim()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    let mut total = 0;
+    let mut it = transposed_numbers.iter();
+    let mut args = Vec::new();
+    for op in input[input.len() - 1]
+        .split_whitespace()
+        .map(|x| x.parse::<Operation>().unwrap())
+    {
+        loop {
+            let empty = "".to_string();
+            let s = it.next().unwrap_or(&empty);
+            if s.is_empty() {
+                break
+            }
+            args.push(s.parse::<u64>().unwrap());
+        }
+        total += match op {
+            Operation::Sum => args.iter().sum::<u64>(),
+            Operation::Mult => args.iter().product::<u64>(),
+        };
+        args.clear();
+    }
+    total
 }
 
 #[cfg(test)]
@@ -65,14 +100,28 @@ mod tests {
         let input = input.lines().map(|x| x.to_string()).collect::<Vec<_>>();
         assert_eq!(part1(&input), 4277556);
     }
-    
+
     #[test]
     fn test_part1() {
         assert_eq!(part1(&INPUT), 4405895212738);
     }
 
     #[test]
+    fn test_example_part2() {
+        let input = vec![
+            "123 328  51 64 ",
+            " 45 64  387 23 ",
+            "  6 98  215 314",
+            "*   +   *   +  ",
+        ]
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<_>>();
+        assert_eq!(part2(&input), 3263827);
+    }
+
+    #[test]
     fn test_part2() {
-        todo!("day06 - part2");
+        assert_eq!(part2(&INPUT), 7450962489289);
     }
 }
