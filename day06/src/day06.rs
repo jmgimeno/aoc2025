@@ -1,4 +1,5 @@
 use common::read_file_as_lines;
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use std::str::FromStr;
 
@@ -24,7 +25,7 @@ impl FromStr for Operation {
     }
 }
 
-pub fn part1(input: &[String]) -> u64 {
+pub fn part1_iterative(input: &[String]) -> u64 {
     let numbers = input[..input.len() - 1]
         .iter()
         .map(|line| {
@@ -49,7 +50,7 @@ pub fn part1(input: &[String]) -> u64 {
     total
 }
 
-pub fn part2(input: &[String]) -> u64 {
+pub fn part2_iterative(input: &[String]) -> u64 {
     let numbers = &input[..input.len() - 1];
     assert!(numbers.iter().all(|row| row.len() == numbers[0].len()));
     let len = numbers[0].len();
@@ -74,7 +75,7 @@ pub fn part2(input: &[String]) -> u64 {
             let empty = "".to_string();
             let s = it.next().unwrap_or(&empty);
             if s.is_empty() {
-                break
+                break;
             }
             args.push(s.parse::<u64>().unwrap());
         }
@@ -85,6 +86,49 @@ pub fn part2(input: &[String]) -> u64 {
         args.clear();
     }
     total
+}
+
+pub fn part1(input: &[String]) -> u64 {
+    let mut numbers = input[..input.len() - 1]
+        .iter()
+        .map(|line| line.split_whitespace().map(|x| x.parse::<u64>().unwrap()))
+        .collect::<Vec<_>>();
+    let ops = input[input.len() - 1]
+        .split_whitespace()
+        .map(|x| x.parse::<Operation>().unwrap());
+    ops.map(|op| {
+        let args = numbers.iter_mut().map(|row| row.next().unwrap());
+        match op {
+            Operation::Sum => args.sum::<u64>(),
+            Operation::Mult => args.product::<u64>(),
+        }
+    })
+    .sum::<u64>()
+}
+
+pub fn part2(input: &[String]) -> u64 {
+    let transposed_numbers = (0..input[0].len())
+        .map(|i| {
+            input
+                .iter()
+                .take(input.len() - 1)
+                .map(|row| row.chars().nth(i).unwrap())
+                .collect::<String>()
+        })
+        .map(|num_str| num_str.trim().parse::<u64>().unwrap_or(0))
+        .chunk_by(|n| *n != 0); // no column has value zero, so we use it to mark separators
+    let ops = input[input.len() - 1]
+        .split_whitespace()
+        .map(|x| x.parse::<Operation>().unwrap());
+    transposed_numbers
+        .into_iter()
+        .filter_map(|(has_numbers, numbers)| has_numbers.then_some(numbers))
+        .zip(ops)
+        .map(|(numbers, op)| match op {
+            Operation::Sum => numbers.sum::<u64>(),
+            Operation::Mult => numbers.product::<u64>(),
+        })
+        .sum::<u64>()
 }
 
 #[cfg(test)]
@@ -123,5 +167,29 @@ mod tests {
     #[test]
     fn test_part2() {
         assert_eq!(part2(&INPUT), 7450962489289);
+    }
+
+    #[test]
+    fn test_example_part2_iterative() {
+        let input = vec![
+            "123 328  51 64 ",
+            " 45 64  387 23 ",
+            "  6 98  215 314",
+            "*   +   *   +  ",
+        ]
+        .iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<_>>();
+        assert_eq!(part2_iterative(&input), 3263827);
+    }
+
+    #[test]
+    fn test_part1_iterative() {
+        assert_eq!(part1_iterative(&INPUT), 4405895212738);
+    }
+
+    #[test]
+    fn test_part2_iterative() {
+        assert_eq!(part2_iterative(&INPUT), 7450962489289);
     }
 }

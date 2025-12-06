@@ -19,6 +19,7 @@ resolver = "3"
 
 [workspace.dependencies]
 divan = "0.1.21"
+itertools = "0.14.0"
 once_cell = "1.21.3"
 rstest = "0.26.1"
 

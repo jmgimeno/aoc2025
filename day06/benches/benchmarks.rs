@@ -1,4 +1,4 @@
-use day06::day06::{INPUT, part1, part2};
+use day06::day06::{INPUT, part1, part2, part1_iterative, part2_iterative};
 
 fn main() {
     divan::main()
@@ -12,4 +12,14 @@ fn bench_part1() {
 #[divan::bench]
 fn bench_part2() {
     part2(divan::black_box(&INPUT));
+}
+
+#[divan::bench]
+fn bench_part1_iterative() {
+    part1_iterative(divan::black_box(&INPUT));
+}
+
+#[divan::bench]
+fn bench_part2_iterative() {
+    part2_iterative(divan::black_box(&INPUT));
 }
