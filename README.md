@@ -5,7 +5,7 @@
 - Day 3: Lobby
 - Day 4: Printing Department
 - Day 5: Cafeteria
-- Day 6:
+- Day 6: Trash Compactor
 - Day 7:
 - Day 8:
 - Day 9:

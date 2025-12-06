@@ -1,0 +1,19 @@
+[package]
+name = "day06"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+doctest = false
+
+[dependencies]
+common.workspace = true
+once_cell.workspace = true
+
+[dev-dependencies]
+divan.workspace = true
+
+[[bench]]
+name = "day06-benchmarks"
+path = "benches/benchmarks.rs"
+harness = false
