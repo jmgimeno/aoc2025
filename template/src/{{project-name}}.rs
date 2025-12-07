@@ -18,11 +18,11 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        assert_eq!(part1(&INPUT), 0);
+        todo!("{{project-name}} - test - part1")
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(&INPUT), 0);
+        todo!("{{project-name}} - test - part2")
     }
 }
