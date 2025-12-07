@@ -20,18 +20,19 @@ pub fn part1(input: &[String]) -> usize {
         if splitters.is_empty() {
             continue;
         }
-        let splitted_rays = rays.intersection(&splitters).collect::<BitSet<_>>();
-        total_splits += splitted_rays.len();
-        let new_rays = splitted_rays
+        let split_rays = rays.intersection(&splitters).collect::<BitSet<_>>();
+        total_splits += split_rays.len();
+        let new_rays = split_rays
             .iter()
             .flat_map(|ray| [ray - 1, ray + 1])
             .collect::<BitSet<usize>>();
-        let old_rays = rays.difference(&splitted_rays).collect::<BitSet<_>>();
+        let old_rays = rays.difference(&split_rays).collect::<BitSet<_>>();
         rays = new_rays.union(&old_rays).collect::<BitSet<_>>();
     }
     total_splits
 }
 
+#[allow(dead_code)]
 pub fn part1_slower(input: &[String]) -> usize {
     let first_ray = &input[0].find("S").expect("Missing first ray");
     let mut rays = BitSet::with_capacity(input[0].len());
@@ -51,7 +52,8 @@ pub fn part1_slower(input: &[String]) -> usize {
     total_splits
 }
 
-pub fn part2(input: &[String]) -> usize {
+#[allow(dead_code)]
+pub fn part2_slower(input: &[String]) -> usize {
     let first_ray = input[0].find("S").expect("Missing first ray");
     let mut timelines = HashMap::new();
     timelines.insert(first_ray, 1);
@@ -70,6 +72,48 @@ pub fn part2(input: &[String]) -> usize {
         timelines = next;
     }
     timelines.values().sum()
+}
+
+#[allow(dead_code)]
+pub fn part1_slowest(input: &[String]) -> usize {
+    let first_ray = input[0].find("S").expect("Missing first ray");
+    let mut timelines = vec![false; input[0].len()];
+    timelines[first_ray] = true;
+    let mut total_splits = 0;
+    for line in input.iter().skip(1) {
+        for i in 0..timelines.len() {
+            if !timelines[i] {
+                continue;
+            }
+            if line.chars().nth(i) == Some('^') {
+                timelines[i - 1] = true;
+                timelines[i + 1] = true;
+                timelines[i] = false;
+                total_splits += 1;
+            }
+        }
+    }
+    total_splits
+}
+
+pub fn part2(input: &[String]) -> usize {
+    let first_ray = input[0].find("S").expect("Missing first ray");
+    let mut timelines = vec![0; input[0].len()];
+    timelines[first_ray] = 1;
+
+    for line in input.iter().skip(1) {
+        for i in 0..timelines.len() {
+            if timelines[i] == 0 {
+                continue;
+            }
+            if line.chars().nth(i) == Some('^') {
+                timelines[i - 1] += timelines[i];
+                timelines[i + 1] += timelines[i];
+                timelines[i] = 0;
+            }
+        }
+    }
+    timelines.iter().sum()
 }
 
 #[cfg(test)]
@@ -107,10 +151,15 @@ mod tests {
     }
 
     #[test]
+    fn test_part1_slowest() {
+        assert_eq!(part1_slowest(&INPUT), 1703);
+    }
+
+    #[test]
     fn test_part1_slower() {
         assert_eq!(part1_slower(&INPUT), 1703);
     }
-    
+
     #[test]
     fn test_example_part2() {
         let input = "\
@@ -134,6 +183,11 @@ mod tests {
             .map(|l| l.to_string())
             .collect::<Vec<_>>();
         assert_eq!(part2(&input), 40);
+    }
+
+    #[test]
+    fn test_part2_slower() {
+        assert_eq!(part2_slower(&INPUT), 171692855075500);
     }
 
     #[test]
