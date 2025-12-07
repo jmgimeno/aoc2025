@@ -15,4 +15,4 @@ download day:
     cargo run -p downloader -- --day {{day}}
 
 bench day:
-    cargo bench -p {{day}}
+    cargo bench --bench {{day}}-benchmarks
