@@ -1,6 +1,7 @@
 use bit_set::BitSet;
 use common::read_file_as_lines;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
 pub static INPUT: Lazy<Vec<String>> =
     Lazy::new(|| read_file_as_lines("data/day07.txt").expect("Failed to load input"));
@@ -11,19 +12,45 @@ pub fn part1(input: &[String]) -> usize {
     rays.insert(*first_ray);
     let mut total_splits = 0;
     for line in input.iter().skip(1) {
-        let splitters = line.chars().enumerate().filter_map(|(i, c)| (c == '^').then_some(i)).collect::<BitSet<_>>();
-        if splitters.is_empty() { continue; }
+        let splitters = line
+            .chars()
+            .enumerate()
+            .filter_map(|(i, c)| (c == '^').then_some(i))
+            .collect::<BitSet<_>>();
+        if splitters.is_empty() {
+            continue;
+        }
         let splitted_rays = rays.intersection(&splitters).collect::<BitSet<_>>();
         total_splits += splitted_rays.len();
-        let new_rays = splitted_rays.iter().flat_map(|ray| [ray - 1, ray + 1]).collect::<BitSet<usize>>();
+        let new_rays = splitted_rays
+            .iter()
+            .flat_map(|ray| [ray - 1, ray + 1])
+            .collect::<BitSet<usize>>();
         let old_rays = rays.difference(&splitted_rays).collect::<BitSet<_>>();
         rays = new_rays.union(&old_rays).collect::<BitSet<_>>();
     }
     total_splits
 }
 
-pub fn part2(_input: &[String]) -> usize {
-    todo!("day07 - part1")
+pub fn part2(input: &[String]) -> usize {
+    let first_ray = input[0].find("S").expect("Missing first ray");
+    let mut timelines = HashMap::new();
+    timelines.insert(first_ray, 1);
+
+    for line in input.iter().skip(1) {
+        let mut next: HashMap<usize, usize> = HashMap::new();
+
+        for (&ray, &count) in timelines.iter() {
+            if line.chars().nth(ray) == Some('.') {
+                *next.entry(ray).or_insert(0) += count;
+            } else {
+                *next.entry(ray - 1).or_insert(0) += count;
+                *next.entry(ray + 1).or_insert(0) += count;
+            }
+        }
+        timelines = next;
+    }
+    timelines.values().sum()
 }
 
 #[cfg(test)]
@@ -48,7 +75,10 @@ mod tests {
 ..^...^.....^..
 ...............
 .^.^.^.^.^...^.
-...............".lines().map(|l| l.to_string()).collect::<Vec<_>>();
+..............."
+            .lines()
+            .map(|l| l.to_string())
+            .collect::<Vec<_>>();
         assert_eq!(part1(&input), 21);
     }
 
@@ -58,7 +88,32 @@ mod tests {
     }
 
     #[test]
+    fn test_example_part2() {
+        let input = "\
+.......S.......
+...............
+.......^.......
+...............
+......^.^......
+...............
+.....^.^.^.....
+...............
+....^.^...^....
+...............
+...^.^...^.^...
+...............
+..^...^.....^..
+...............
+.^.^.^.^.^...^.
+..............."
+            .lines()
+            .map(|l| l.to_string())
+            .collect::<Vec<_>>();
+        assert_eq!(part2(&input), 40);
+    }
+
+    #[test]
     fn test_part2() {
-        todo!("day07 - test - part2")
+        assert_eq!(part2(&INPUT), 171692855075500);
     }
 }
