@@ -32,6 +32,25 @@ pub fn part1(input: &[String]) -> usize {
     total_splits
 }
 
+pub fn part1_slower(input: &[String]) -> usize {
+    let first_ray = &input[0].find("S").expect("Missing first ray");
+    let mut rays = BitSet::with_capacity(input[0].len());
+    rays.insert(*first_ray);
+    let mut total_splits = 0;
+    for line in input.iter().skip(1) {
+        let snapshot = rays.clone();
+        for ray in snapshot.iter() {
+            if line.chars().nth(ray) == Some('^') {
+                rays.remove(ray);
+                rays.insert(ray - 1);
+                rays.insert(ray + 1);
+                total_splits += 1;
+            }
+        }
+    }
+    total_splits
+}
+
 pub fn part2(input: &[String]) -> usize {
     let first_ray = input[0].find("S").expect("Missing first ray");
     let mut timelines = HashMap::new();
@@ -87,6 +106,11 @@ mod tests {
         assert_eq!(part1(&INPUT), 1703);
     }
 
+    #[test]
+    fn test_part1_slower() {
+        assert_eq!(part1_slower(&INPUT), 1703);
+    }
+    
     #[test]
     fn test_example_part2() {
         let input = "\
