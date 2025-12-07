@@ -13,6 +13,32 @@ pub fn part1(input: &[String]) -> usize {
     let mut total_splits = 0;
     for line in input.iter().skip(1) {
         let splitters = line
+            .bytes()
+            .enumerate()
+            .filter_map(|(i, c)| (c == b'^').then_some(i))
+            .collect::<BitSet<_>>();
+        if splitters.is_empty() {
+            continue;
+        }
+        let split_rays = rays.intersection(&splitters).collect::<BitSet<_>>();
+        total_splits += split_rays.len();
+        let new_rays = split_rays
+            .iter()
+            .flat_map(|ray| [ray - 1, ray + 1])
+            .collect::<BitSet<usize>>();
+        let old_rays = rays.difference(&split_rays).collect::<BitSet<_>>();
+        rays = new_rays.union(&old_rays).collect::<BitSet<_>>();
+    }
+    total_splits
+}
+
+pub fn part1_chars(input: &[String]) -> usize {
+    let first_ray = &input[0].find("S").expect("Missing first ray");
+    let mut rays = BitSet::with_capacity(input[0].len());
+    rays.insert(*first_ray);
+    let mut total_splits = 0;
+    for line in input.iter().skip(1) {
+        let splitters = line
             .chars()
             .enumerate()
             .filter_map(|(i, c)| (c == '^').then_some(i))
@@ -96,7 +122,7 @@ pub fn part1_slowest(input: &[String]) -> usize {
     total_splits
 }
 
-pub fn part2(input: &[String]) -> usize {
+pub fn part2_chars(input: &[String]) -> usize {
     let first_ray = input[0].find("S").expect("Missing first ray");
     let mut timelines = vec![0; input[0].len()];
     timelines[first_ray] = 1;
@@ -107,6 +133,27 @@ pub fn part2(input: &[String]) -> usize {
                 continue;
             }
             if line.chars().nth(i) == Some('^') {
+                timelines[i - 1] += timelines[i];
+                timelines[i + 1] += timelines[i];
+                timelines[i] = 0;
+            }
+        }
+    }
+    timelines.iter().sum()
+}
+
+pub fn part2(input: &[String]) -> usize {
+    let first_ray = input[0].find("S").expect("Missing first ray");
+    let mut timelines = vec![0; input[0].len()];
+    timelines[first_ray] = 1;
+
+    for line in input.iter().skip(1) {
+        let bytes = line.as_bytes();
+        for i in 0..timelines.len() {
+            if timelines[i] == 0 {
+                continue;
+            }
+            if bytes[i] == b'^' {
                 timelines[i - 1] += timelines[i];
                 timelines[i + 1] += timelines[i];
                 timelines[i] = 0;
@@ -151,6 +198,11 @@ mod tests {
     }
 
     #[test]
+    fn test_part1_chars() {
+        assert_eq!(part1_chars(&INPUT), 1703);
+    }
+
+    #[test]
     fn test_part1_slowest() {
         assert_eq!(part1_slowest(&INPUT), 1703);
     }
@@ -188,6 +240,11 @@ mod tests {
     #[test]
     fn test_part2_slower() {
         assert_eq!(part2_slower(&INPUT), 171692855075500);
+    }
+
+    #[test]
+    fn test_part2_chars() {
+        assert_eq!(part2_chars(&INPUT), 171692855075500);
     }
 
     #[test]
