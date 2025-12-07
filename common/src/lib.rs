@@ -35,3 +35,4 @@ fn get_path_from_root(path: &str) -> Result<PathBuf, String> {
         Some(parent) => Ok(parent.join(path)),
     }
 }
+
