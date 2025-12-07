@@ -88,6 +88,31 @@ pub fn part2_iterative(input: &[String]) -> u64 {
     total
 }
 
+pub fn part2_strings(input: &[String]) -> u64 {
+    let transposed_numbers = (0..input[0].len())
+        .map(|i| {
+            input
+                .iter()
+                .take(input.len() - 1)
+                .map(|row| row.chars().nth(i).unwrap())
+                .collect::<String>()
+        })
+        .map(|num_str| num_str.trim().parse::<u64>().unwrap_or(0))
+        .chunk_by(|n| *n != 0); // no column has value zero, so we use it to mark separators
+    let ops = input[input.len() - 1]
+        .split_whitespace()
+        .map(|x| x.parse::<Operation>().unwrap());
+    transposed_numbers
+        .into_iter()
+        .filter_map(|(has_numbers, numbers)| has_numbers.then_some(numbers))
+        .zip(ops)
+        .map(|(numbers, op)| match op {
+            Operation::Sum => numbers.sum::<u64>(),
+            Operation::Mult => numbers.product::<u64>(),
+        })
+        .sum::<u64>()
+}
+
 pub fn part1(input: &[String]) -> u64 {
     let mut numbers = input[..input.len() - 1]
         .iter()
@@ -113,9 +138,14 @@ pub fn part2(input: &[String]) -> u64 {
                 .iter()
                 .take(input.len() - 1)
                 .map(|row| row.chars().nth(i).unwrap())
-                .collect::<String>()
+                .fold(0, |acc, c| {
+                    if c.is_digit(10) {
+                        acc * 10 + (c as u64 - '0' as u64)
+                    } else {
+                        acc
+                    }
+                })
         })
-        .map(|num_str| num_str.trim().parse::<u64>().unwrap_or(0))
         .chunk_by(|n| *n != 0); // no column has value zero, so we use it to mark separators
     let ops = input[input.len() - 1]
         .split_whitespace()
@@ -191,5 +221,10 @@ mod tests {
     #[test]
     fn test_part2_iterative() {
         assert_eq!(part2_iterative(&INPUT), 7450962489289);
+    }
+
+    #[test]
+    fn test_part2_strings() {
+        assert_eq!(part2_strings(&INPUT), 7450962489289);
     }
 }
