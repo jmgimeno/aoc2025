@@ -1,13 +1,13 @@
 use common::read_file_as_lines;
 use once_cell::sync::Lazy;
 use partitions::PartitionVec;
-use std::cmp::Ordering;
 use std::collections::BinaryHeap;
+use std::cmp::Reverse;
 
 pub static INPUT: Lazy<Vec<String>> =
     Lazy::new(|| read_file_as_lines("data/day08.txt").expect("Failed to load input"));
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Box {
     id: usize,
     x: u32,
@@ -16,12 +16,11 @@ pub struct Box {
 }
 
 impl Box {
-    fn distance(&self, other: Box) -> f64 {
+    fn distance(&self, other: Box) -> u64 {
         let x_diff = self.x as i64 - other.x as i64;
         let y_diff = self.y as i64 - other.y as i64;
         let z_diff = self.z as i64 - other.z as i64;
-        let sq = x_diff * x_diff + y_diff * y_diff + z_diff * z_diff;
-        (sq as f64).sqrt()
+        (x_diff * x_diff + y_diff * y_diff + z_diff * z_diff) as u64
     }
 }
 
@@ -35,53 +34,27 @@ fn parse_boxes(input: &[String]) -> Result<Vec<Box>, String> {
     }).collect()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 struct DistanceTriplet {
-    distance: f64,
+    distance: u64,
     b1: Box,
     b2: Box,
 }
 
 impl DistanceTriplet {
-    fn new(distance: f64, b1: Box, b2: Box) -> Self {
+    fn new(distance: u64, b1: Box, b2: Box) -> Self {
         Self { distance, b1, b2 }
     }
 }
 
-impl Eq for DistanceTriplet {}
-
-impl PartialEq<Self> for DistanceTriplet {
-    fn eq(&self, _other: &Self) -> bool {
-        panic!("We assume no two distances are equal")
-    }
-}
-
-impl PartialOrd<Self> for DistanceTriplet {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for DistanceTriplet {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if self.distance < other.distance {
-            Ordering::Greater
-        } else if self.distance > other.distance {
-            Ordering::Less
-        } else {
-            panic!("We assume no two distances are equal")
-        }
-    }
-}
-
-fn sorted_distances(boxes: &[Box]) -> BinaryHeap<DistanceTriplet> {
+fn sorted_distances(boxes: &[Box]) -> BinaryHeap<Reverse<DistanceTriplet>> {
     let mut distances = BinaryHeap::with_capacity(boxes.len() * boxes.len());
     for (i, b_i) in boxes.iter().enumerate() {
         for b_j in boxes[i + 1..].iter() {
-            distances.push(DistanceTriplet::new(b_i.distance(*b_j), *b_i, *b_j));
+            distances.push(Reverse(DistanceTriplet::new(b_i.distance(*b_j), *b_i, *b_j)));
         }
     }
-    distances
+     distances
 }
 
 fn circuits(boxes: &[Box]) -> PartitionVec<Box> {
@@ -97,7 +70,7 @@ pub fn part1(input: &[String], connections: usize) -> usize {
     let mut distances = sorted_distances(&boxes);
     let mut circuits = circuits(&boxes); // union-find via partitions crate
     for _ in 0..connections {
-        let DistanceTriplet { distance: _, b1, b2 } =
+        let Reverse(DistanceTriplet { distance: _, b1, b2 }) =
             distances.pop().expect("Distances empty");
         if !circuits.same_set(b1.id, b2.id) {
             circuits.union(b1.id, b2.id);
@@ -115,7 +88,7 @@ pub fn part2(input: &[String]) -> u64 {
     let mut last_two = None;
     let mut connections = 0;
     while connections != boxes.len() - 1 {
-        let DistanceTriplet { distance: _, b1, b2 } =
+        let Reverse(DistanceTriplet { distance: _, b1, b2 }) =
             distances.pop().expect("Distances empty");
         if !circuits.same_set(b1.id, b2.id) {
             last_two = Some(b1.x as u64 * b2.x as u64);
