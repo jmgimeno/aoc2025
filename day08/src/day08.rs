@@ -89,14 +89,11 @@ pub fn part1(input: &[String], connections: usize) -> usize {
         }) = distances.pop().expect("Distances empty");
         circuits.union(b1.id, b2.id);
     }
-    circuits.size.iter()
-        .map(|s| Reverse(s))
-        .collect::<BinaryHeap<_>>()
-        .into_sorted_vec()
-        .into_iter()
-        .take(3)
-        .map(|x| x.0)
-        .product()
+    let mut sizes = circuits.size.iter().collect::<BinaryHeap<_>>();
+    let s1 = sizes.pop().unwrap();
+    let s2 = sizes.pop().unwrap();
+    let s3 = sizes.pop().unwrap();
+    s1 * s2 * s3
 }
 
 pub fn part2(input: &[String]) -> u64 {
