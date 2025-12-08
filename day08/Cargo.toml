@@ -8,8 +8,8 @@ doctest = false
 
 [dependencies]
 common.workspace = true
+indices_union_find = "0.1.2"
 once_cell.workspace = true
-partitions = "0.2.4"
 
 [dev-dependencies]
 divan.workspace = true

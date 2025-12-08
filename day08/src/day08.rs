@@ -1,8 +1,8 @@
 use common::read_file_as_lines;
+use indices_union_find::UnionFind;
 use once_cell::sync::Lazy;
-use partitions::PartitionVec;
-use std::collections::BinaryHeap;
 use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 
 pub static INPUT: Lazy<Vec<String>> =
     Lazy::new(|| read_file_as_lines("data/day08.txt").expect("Failed to load input"));
@@ -25,13 +25,29 @@ impl Box {
 }
 
 fn parse_boxes(input: &[String]) -> Result<Vec<Box>, String> {
-    input.iter().enumerate().map(|(id, line)| {
-        let mut parts = line.split(',');
-        let x = parts.next().ok_or("Missing x")?.parse().map_err(|_| "Invalid x")?;
-        let y = parts.next().ok_or("Missing y")?.parse().map_err(|_| "Invalid y")?;
-        let z = parts.next().ok_or("Missing z")?.parse().map_err(|_| "Invalid z")?;
-        Ok(Box { id, x, y, z })
-    }).collect()
+    input
+        .iter()
+        .enumerate()
+        .map(|(id, line)| {
+            let mut parts = line.split(',');
+            let x = parts
+                .next()
+                .ok_or("Missing x")?
+                .parse()
+                .map_err(|_| "Invalid x")?;
+            let y = parts
+                .next()
+                .ok_or("Missing y")?
+                .parse()
+                .map_err(|_| "Invalid y")?;
+            let z = parts
+                .next()
+                .ok_or("Missing z")?
+                .parse()
+                .map_err(|_| "Invalid z")?;
+            Ok(Box { id, x, y, z })
+        })
+        .collect()
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -51,46 +67,51 @@ fn sorted_distances(boxes: &[Box]) -> BinaryHeap<Reverse<DistanceTriplet>> {
     let mut distances = BinaryHeap::with_capacity(boxes.len() * boxes.len());
     for (i, b_i) in boxes.iter().enumerate() {
         for b_j in boxes[i + 1..].iter() {
-            distances.push(Reverse(DistanceTriplet::new(b_i.distance(*b_j), *b_i, *b_j)));
+            distances.push(Reverse(DistanceTriplet::new(
+                b_i.distance(*b_j),
+                *b_i,
+                *b_j,
+            )));
         }
     }
-     distances
-}
-
-fn circuits(boxes: &[Box]) -> PartitionVec<Box> {
-    let mut partitions = PartitionVec::with_capacity(boxes.len());
-    for b in boxes {
-        partitions.insert(b.id, *b);
-    }
-    partitions
+    distances
 }
 
 pub fn part1(input: &[String], connections: usize) -> usize {
     let boxes = parse_boxes(input).unwrap();
     let mut distances = sorted_distances(&boxes);
-    let mut circuits = circuits(&boxes); // union-find via partitions crate
+    let mut circuits = UnionFind::new(boxes.len());
     for _ in 0..connections {
-        let Reverse(DistanceTriplet { distance: _, b1, b2 }) =
-            distances.pop().expect("Distances empty");
-        if !circuits.same_set(b1.id, b2.id) {
-            circuits.union(b1.id, b2.id);
-        }
+        let Reverse(DistanceTriplet {
+            distance: _,
+            b1,
+            b2,
+        }) = distances.pop().expect("Distances empty");
+        circuits.union(b1.id, b2.id);
     }
-    circuits.all_sets()
-        .map(|s| s.count()).collect::<BinaryHeap<_>>().iter()
-        .take(3).product()
+    circuits.size.iter()
+        .map(|s| Reverse(s))
+        .collect::<BinaryHeap<_>>()
+        .into_sorted_vec()
+        .iter()
+        .take(3)
+        .map(|x| x.0)
+        .product()
 }
 
 pub fn part2(input: &[String]) -> u64 {
     let boxes = parse_boxes(input).unwrap();
     let mut distances = sorted_distances(&boxes);
-    let mut circuits = circuits(&boxes); // union-find via partitions crate
+    let mut circuits = UnionFind::new(boxes.len());
     let mut last_two = None;
     let mut connections = 0;
     while connections != boxes.len() - 1 {
-        let Reverse(DistanceTriplet { distance: _, b1, b2 }) =
-            distances.pop().expect("Distances empty");
-        if !circuits.same_set(b1.id, b2.id) {
+        let Reverse(DistanceTriplet {
+            distance: _,
+            b1,
+            b2,
+        }) = distances.pop().expect("Distances empty");
+        if circuits.find(b1.id) != circuits.find(b2.id) {
             last_two = Some(b1.x as u64 * b2.x as u64);
             circuits.union(b1.id, b2.id);
             connections += 1;
