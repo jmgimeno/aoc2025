@@ -93,7 +93,7 @@ pub fn part1(input: &[String], connections: usize) -> usize {
         .map(|s| Reverse(s))
         .collect::<BinaryHeap<_>>()
         .into_sorted_vec()
-        .iter()
+        .into_iter()
         .take(3)
         .map(|x| x.0)
         .product()
