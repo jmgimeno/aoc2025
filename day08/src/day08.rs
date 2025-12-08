@@ -51,8 +51,8 @@ impl DistanceTriplet {
 impl Eq for DistanceTriplet {}
 
 impl PartialEq<Self> for DistanceTriplet {
-    fn eq(&self, other: &Self) -> bool {
-        false
+    fn eq(&self, _other: &Self) -> bool {
+        panic!("We assume no two distances are equal")
     }
 }
 
@@ -74,25 +74,13 @@ impl Ord for DistanceTriplet {
     }
 }
 
-fn sorted_distances_heap(boxes: &[Box]) -> BinaryHeap<DistanceTriplet> {
+fn sorted_distances(boxes: &[Box]) -> BinaryHeap<DistanceTriplet> {
     let mut distances = BinaryHeap::with_capacity(boxes.len() * boxes.len());
     for (i, b_i) in boxes.iter().enumerate() {
         for b_j in boxes[i + 1..].iter() {
             distances.push(DistanceTriplet::new(b_i.distance(*b_j), *b_i, *b_j));
         }
     }
-    distances
-}
-
-#[allow(dead_code)]
-fn sorted_distances_sorted_vec(boxes: &[Box]) -> Vec<DistanceTriplet> {
-    let mut distances = Vec::with_capacity(boxes.len() * boxes.len());
-    for (i, b_i) in boxes.iter().enumerate() {
-        for b_j in boxes[i + 1..].iter() {
-            distances.push(DistanceTriplet::new(b_i.distance(*b_j), *b_i, *b_j));
-        }
-    }
-    distances.sort_by(|a, b| b.distance.partial_cmp(&a.distance).unwrap());
     distances
 }
 
@@ -106,8 +94,8 @@ fn circuits(boxes: &[Box]) -> PartitionVec<Box> {
 
 pub fn part1(input: &[String], connections: usize) -> usize {
     let boxes = parse_boxes(input).unwrap();
-    let mut distances = sorted_distances_heap(&boxes);
-    let mut circuits = circuits(&boxes);
+    let mut distances = sorted_distances(&boxes);
+    let mut circuits = circuits(&boxes); // union-find via partitions crate
     for _ in 0..connections {
         let DistanceTriplet { distance: _, b1, b2 } =
             distances.pop().expect("Distances empty");
@@ -115,13 +103,27 @@ pub fn part1(input: &[String], connections: usize) -> usize {
             circuits.union(b1.id, b2.id);
         }
     }
-    let mut sizes = circuits.all_sets().map(|s| s.count()).collect::<Vec<_>>();
-    sizes.sort_by_key(|a| usize::MAX -a);
-    sizes.iter().take(3).product()
+    circuits.all_sets()
+        .map(|s| s.count()).collect::<BinaryHeap<_>>().iter()
+        .take(3).product()
 }
 
-pub fn part2(_input: &[String]) -> usize {
-    todo!("day08 - part1")
+pub fn part2(input: &[String]) -> u64 {
+    let boxes = parse_boxes(input).unwrap();
+    let mut distances = sorted_distances(&boxes);
+    let mut circuits = circuits(&boxes); // union-find via partitions crate
+    let mut last_two = None;
+    let mut connections = 0;
+    while connections != boxes.len() - 1 {
+        let DistanceTriplet { distance: _, b1, b2 } =
+            distances.pop().expect("Distances empty");
+        if !circuits.same_set(b1.id, b2.id) {
+            last_two = Some(b1.x as u64 * b2.x as u64);
+            circuits.union(b1.id, b2.id);
+            connections += 1;
+        }
+    }
+    last_two.unwrap()
 }
 
 #[cfg(test)]
@@ -161,7 +163,34 @@ mod tests {
     }
 
     #[test]
+    fn test_example_part2() {
+        let input = "\
+162,817,812
+57,618,57
+906,360,560
+592,479,940
+352,342,300
+466,668,158
+542,29,236
+431,825,988
+739,650,466
+52,470,668
+216,146,977
+819,987,18
+117,168,530
+805,96,715
+346,949,466
+970,615,88
+941,993,340
+862,61,35
+984,92,344
+425,690,689";
+        let input = input.lines().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(part2(&input), 25272);
+    }
+
+    #[test]
     fn test_part2() {
-        todo!("day08 - test - part2")
+        assert_eq!(part2(&INPUT), 133296744);
     }
 }
