@@ -1,12 +1,11 @@
 use common::read_file_as_elements;
 use once_cell::sync::Lazy;
-use std::cmp::Ordering;
 use std::str::FromStr;
 
 pub static INPUT: Lazy<Vec<Point>> =
     Lazy::new(|| read_file_as_elements("data/day09.txt").expect("Failed to load input"));
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Ord, Eq, PartialOrd, PartialEq)]
 pub struct Point {
     x: i32,
     y: i32,
@@ -31,6 +30,9 @@ impl FromStr for Point {
 }
 
 fn cross(o: &Point, a: &Point, b: &Point) -> i64 {
+    // < 0: a -> b is a clockwise (left) turn around o
+    // = 0: o, a, b are co-linear
+    // > 0: a -> b is a counter-clockwise (right) turn around o
     let ax = (a.x - o.x) as i64;
     let ay = (a.y - o.y) as i64;
     let bx = (b.x - o.x) as i64;
@@ -38,43 +40,35 @@ fn cross(o: &Point, a: &Point, b: &Point) -> i64 {
     ax * by - ay * bx
 }
 
+fn half_border<'a, I>(iter: I) -> Vec<Point>
+where
+    I: Iterator<Item = &'a Point>,
+{
+    let mut border: Vec<Point> = Vec::new();
+    for &p in iter {
+        // only allow advance if clockwise
+        while border.len() >= 2
+            && cross(&border[border.len() - 2], &border[border.len() - 1], &p) >= 0
+        {
+            border.pop();
+        }
+        border.push(p);
+    }
+    border
+}
+
 pub fn convex_hull(points: &[Point]) -> Vec<Point> {
-    // Monotone chain algorithm (Andrew)
+    // Monotone chain algorithm
     let mut pts = points.to_vec();
     if pts.len() <= 1 {
         return pts;
     }
-
-    pts.sort_by(|a, b| match a.x.cmp(&b.x) {
-        Ordering::Equal => a.y.cmp(&b.y),
-        other => other,
-    });
-
-    pts.dedup_by(|a, b| a.x == b.x && a.y == b.y);
-
-    let mut lower: Vec<Point> = Vec::new();
-    for &p in &pts {
-        while lower.len() >= 2 && cross(&lower[lower.len() - 2], &lower[lower.len() - 1], &p) <= 0 {
-            lower.pop();
-        }
-        lower.push(p);
-    }
-
-    let mut upper: Vec<Point> = Vec::new();
-    for &p in pts.iter().rev() {
-        while upper.len() >= 2 && cross(&upper[upper.len() - 2], &upper[upper.len() - 1], &p) <= 0 {
-            upper.pop();
-        }
-        upper.push(p);
-    }
-
-    // quitar el último elemento de cada mitad porque se repite (punto de unión)
+    pts.sort_unstable(); // lexicographically: first x, then y
+    let mut lower = half_border(pts.iter());
+    let mut upper = half_border(pts.iter().rev());
     lower.pop();
     upper.pop();
     lower.extend(upper);
-    if lower.is_empty() && !pts.is_empty() {
-        lower.push(pts[0]);
-    }
     lower
 }
 
@@ -108,7 +102,10 @@ mod tests {
 2,5
 2,3
 7,3";
-        let tiles = input.lines().map(|l| l.parse().unwrap()).collect::<Vec<Point>>();
+        let tiles = input
+            .lines()
+            .map(|l| l.parse().unwrap())
+            .collect::<Vec<Point>>();
         assert_eq!(part1(&tiles), 50);
     }
     #[test]
