@@ -1,6 +1,9 @@
 use common::read_file_as_elements;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
+use std::collections::BTreeMap;
+use std::ops::Bound::Excluded;
+use std::ops::RangeInclusive;
 use std::str::FromStr;
 
 pub static INPUT: Lazy<Vec<Point>> =
@@ -84,37 +87,61 @@ pub fn part1(tiles: &[Point]) -> u64 {
     max_area
 }
 
-#[derive(Debug)]
-struct InsideDetector<'a> {
-    lines: Vec<(&'a Point, &'a Point)>,
+struct InsideDetector {
+    // for each x it gives the vertical edges at that x
+    vertical_edges: BTreeMap<i32, Vec<RangeInclusive<i32>>>,
+    // for each y it gives the horizontal edges at that y
+    horizontal_edges: BTreeMap<i32, Vec<RangeInclusive<i32>>>,
 }
 
-impl<'a> InsideDetector<'a> {
-    fn new(points: &'a [Point]) -> Self {
+impl InsideDetector {
+    fn new(points: &[Point]) -> Self {
         Self {
-            lines: points
+            vertical_edges: points
                 .iter()
                 .circular_tuple_windows()
-                .collect::<Vec<(_, _)>>(),
+                .filter_map(|(p1, p2)| {
+                    (p1.x == p2.x)
+                        .then_some((p1.x, std::cmp::min(p1.y, p2.y)..=std::cmp::max(p1.y, p2.y)))
+                })
+                .into_group_map_by(|(x, _)| *x)
+                .into_iter()
+                .map(|(x, pairs)| (x, pairs.into_iter().map(|(_, r)| r).collect()))
+                .collect::<BTreeMap<_, _>>(),
+            horizontal_edges: points
+                .iter()
+                .circular_tuple_windows()
+                .filter_map(|(p1, p2)| {
+                    (p1.y == p2.y)
+                        .then_some((p1.y, std::cmp::min(p1.x, p2.x)..=std::cmp::max(p1.x, p2.x)))
+                })
+                .into_group_map_by(|(y, _)| *y)
+                .into_iter()
+                .map(|(x, pairs)| (x, pairs.into_iter().map(|(_, r)| r).collect()))
+                .collect::<BTreeMap<_, _>>(),
         }
     }
 
-    // Chris Biscardi's idea
     fn is_valid(&self, p1: &Point, p2: &Point) -> bool {
         let min_x = p1.x.min(p2.x);
         let max_x = p1.x.max(p2.x);
         let min_y = p1.y.min(p2.y);
         let max_y = p1.y.max(p2.y);
-        self.lines.iter().all(|(l1, l2)| {
-            let min_l_x = l1.x.min(l2.x);
-            let max_l_x = l1.x.max(l2.x);
-            let min_l_y = l1.y.min(l2.y);
-            let max_l_y = l1.y.max(l2.y);
-            max_x <= min_l_x // line on the right
-                || min_x >= max_l_x // line on the left
-                || max_y <= min_l_y // line below
-                || min_y >= max_l_y // line above
-        })
+
+        //no collision with any vertical edge
+        (min_x == max_x // range panics otherwise
+                || self
+                .vertical_edges
+                .range((Excluded(min_x), Excluded(max_x)))
+                .flat_map(|(_, ranges)| ranges.iter())
+                .all(|r| max_y <= *r.start() || min_y >= *r.end()))
+        // and no collision with any horizontal edge
+        && (min_y == max_y
+                || self
+                .horizontal_edges
+                .range((Excluded(min_y), Excluded(max_y)))
+                .flat_map(|(_, ranges)| ranges.iter())
+                .all(|r| max_x <= *r.start() || min_x >= *r.end()))
     }
 }
 
