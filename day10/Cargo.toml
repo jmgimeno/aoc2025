@@ -1,0 +1,20 @@
+[package]
+name = "day10"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+doctest = false
+
+[dependencies]
+common.workspace = true
+once_cell.workspace = true
+regex = "1.12.2"
+
+[dev-dependencies]
+divan.workspace = true
+
+[[bench]]
+name = "day10-benchmarks"
+path = "benches/benchmarks.rs"
+harness = false

@@ -23,6 +23,8 @@
       <sourceFolder url="file://$MODULE_DIR$/day08/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day09/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/day09/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/day10/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/day10/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

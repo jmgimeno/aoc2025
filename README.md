@@ -9,6 +9,6 @@
 - Day 7: Laboratories
 - Day 8: Playground
 - Day 9: Movie Theater
-- Day 10:
+- Day 10: Factory
 - Day 11:
 - Day 12:
