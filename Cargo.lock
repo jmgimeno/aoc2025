@@ -333,6 +333,7 @@ dependencies = [
 name = "day10"
 version = "0.1.0"
 dependencies = [
+ "bit-set",
  "common",
  "divan",
  "once_cell",

@@ -3,6 +3,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashSet, VecDeque};
 use std::str::FromStr;
+use bit_set::BitSet;
 
 pub static INPUT: Lazy<Vec<Machine>> =
     Lazy::new(|| read_file_as_elements("data/day10.txt").expect("Failed to load input"));
@@ -61,29 +62,50 @@ impl FromStr for Machine {
 
 impl Machine {
     fn min_steps_to_target(&self) -> usize {
-        let initial_lights = vec![false; self.target.len()];
+        let initial_lights = BitSet::with_capacity(self.target.len());
+        let target = Machine::target_as_bitset(self.target.clone());
         let mut queue = VecDeque::new();
         let mut explored = HashSet::new();
         explored.insert(initial_lights.clone());
         queue.push_back((0, initial_lights));
         while let Some((steps, lights)) = queue.pop_front() {
-            if lights == self.target {
+            if lights == target {
                 return steps;
             }
             self.button_wiring.iter()
                 .filter_map(|wiring| {
                     let mut neighbor = lights.clone();
-                    wiring.iter().for_each(|i| neighbor[*i] = !neighbor[*i]);
+                    wiring.iter().for_each(|&i| {
+                        if neighbor.contains(i) {
+                            neighbor.remove(i);
+                        } else {
+                            neighbor.insert(i);
+                        }
+                    });
                     if !explored.contains(&neighbor) {
+                        explored.insert(neighbor.clone());
                         Some(neighbor)
                     } else {
                         None
                     }
                 })
-                .for_each(|neighbor| queue.push_back((steps + 1, neighbor)));
+                .for_each(|neighbor| {
+                    queue.push_back((steps + 1, neighbor))
+                });
         }
         unreachable!("No solution found")
     }
+
+    fn target_as_bitset(value: Vec<bool>) -> BitSet {
+        let mut bitset = BitSet::with_capacity(value.len());
+        for (i, value) in value.into_iter().enumerate() {
+            if value {
+                bitset.insert(i);
+            }
+        }
+        bitset
+    }
+
 }
 
 pub fn part1(machines: &[Machine]) -> usize {
