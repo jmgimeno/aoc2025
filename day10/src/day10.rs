@@ -1,9 +1,9 @@
+use bit_set::BitSet;
 use common::read_file_as_elements;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashSet, VecDeque};
 use std::str::FromStr;
-use bit_set::BitSet;
 
 pub static INPUT: Lazy<Vec<Machine>> =
     Lazy::new(|| read_file_as_elements("data/day10.txt").expect("Failed to load input"));
@@ -72,7 +72,8 @@ impl Machine {
             if lights == target {
                 return steps;
             }
-            self.button_wiring.iter()
+            self.button_wiring
+                .iter()
                 .filter_map(|wiring| {
                     let mut neighbor = lights.clone();
                     wiring.iter().for_each(|&i| {
@@ -89,9 +90,41 @@ impl Machine {
                         None
                     }
                 })
-                .for_each(|neighbor| {
-                    queue.push_back((steps + 1, neighbor))
-                });
+                .for_each(|neighbor| queue.push_back((steps + 1, neighbor)));
+        }
+        unreachable!("No solution found")
+    }
+
+    fn min_steps_to_joltage(&self) -> usize {
+        let initial_joltages = vec![0; self.joltage_requirements.len()];
+        let mut queue = VecDeque::new();
+        let mut explored = HashSet::new();
+        explored.insert(initial_joltages.clone());
+        queue.push_back((0, initial_joltages));
+        while let Some((steps, joltages)) = queue.pop_front() {
+            if joltages == self.joltage_requirements {
+                return steps;
+            }
+            self.button_wiring
+                .iter()
+                .filter_map(|wiring| {
+                    let mut neighbor = joltages.clone();
+                    wiring.iter().for_each(|&i| {
+                        neighbor[i] += 1;
+                    });
+                    if !explored.contains(&neighbor)
+                        && neighbor
+                            .iter()
+                            .enumerate()
+                            .all(|(i, &j)| j <= self.joltage_requirements[i])
+                    {
+                        explored.insert(neighbor.clone());
+                        Some(neighbor)
+                    } else {
+                        None
+                    }
+                })
+                .for_each(|neighbor| queue.push_back((steps + 1, neighbor)));
         }
         unreachable!("No solution found")
     }
@@ -105,7 +138,6 @@ impl Machine {
         }
         bitset
     }
-
 }
 
 pub fn part1(machines: &[Machine]) -> usize {
@@ -113,7 +145,7 @@ pub fn part1(machines: &[Machine]) -> usize {
 }
 
 pub fn part2(_machines: &[Machine]) -> usize {
-    todo!("day10 - part1")
+    _machines.iter().map(Machine::min_steps_to_joltage).sum()
 }
 
 #[cfg(test)]
@@ -144,6 +176,27 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(&INPUT), 466);
+    }
+
+    #[test]
+    fn test_part2_machine1() {
+        let input = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}";
+        let machine = input.parse::<Machine>().unwrap();
+        assert_eq!(machine.min_steps_to_joltage(), 10);
+    }
+
+    #[test]
+    fn test_part2_machine2() {
+        let input = "[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}";
+        let machine = input.parse::<Machine>().unwrap();
+        assert_eq!(machine.min_steps_to_joltage(), 12);
+    }
+
+    #[test]
+    fn test_part2_machine3() {
+        let input = "[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
+        let machine = input.parse::<Machine>().unwrap();
+        assert_eq!(machine.min_steps_to_joltage(), 11);
     }
 
     #[test]
