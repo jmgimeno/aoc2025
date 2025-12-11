@@ -23,14 +23,17 @@ impl Rack {
         Self { outputs }
     }
 
-    fn count_paths(&self, from: &str, to: &str) -> usize {
+    fn count_paths<'a>(&self, from: &'a str, to: &'a str) -> usize {
         let mut path = Vec::new();
-        Self::count_paths_inner(self, from, to, &mut path)
+        let mut cache = HashMap::new();
+        Self::count_paths_inner(self, from, to, &mut path, &mut cache)
     }
 
-    fn count_paths_inner(&self, from: &str, to: &str, path: &mut Vec<String>) -> usize {
+    fn count_paths_inner<'a>(&self, from: &'a str, to: &'a str, path: &mut Vec<String>, cache: &mut HashMap<(String, String), usize>) -> usize {
         if from == to {
             1
+        } else if cache.contains_key(&(from.to_string(), to.to_string())) {
+            cache[&(from.to_string(), to.to_string())]
         } else {
             path.push(from.to_string());
             let sum = self
@@ -38,8 +41,9 @@ impl Rack {
                 .get(from)
                 .unwrap_or(&Vec::new())
                 .iter()
-                .filter_map(|s| (!path.contains(s)).then_some(self.count_paths_inner(s, to, path)))
+                .filter_map(|s| (!path.contains(s)).then_some(self.count_paths_inner(s, to, path, cache)))
                 .sum();
+            cache.insert((from.to_string(), to.to_string()), sum);
             path.pop();
             sum
         }
@@ -51,8 +55,20 @@ pub fn part1(input: &str) -> usize {
     rack.count_paths("you", "out")
 }
 
-pub fn part2(_input: &str) -> usize {
-    todo!("day11 - part1")
+pub fn part2(input: &str) -> usize {
+    let rack = Rack::new(input);
+
+    let leg1a = rack.count_paths("svr", "fft");
+    let leg2a = rack.count_paths("fft", "dac");
+    let leg3a = rack.count_paths("dac", "out");
+    let fft_before_dac = leg1a * leg2a * leg3a;
+
+    let leg1b = rack.count_paths("svr", "dac");
+    let leg2b = rack.count_paths("dac", "fft");
+    let leg3b = rack.count_paths("fft", "out");
+    let dac_before_fft = leg1b * leg2b * leg3b;
+
+    fft_before_dac + dac_before_fft
 }
 
 #[cfg(test)]
@@ -74,13 +90,34 @@ hhh: ccc fff iii
 iii: out";
         assert_eq!(part1(input), 5);
     }
+
     #[test]
     fn test_part1() {
         assert_eq!(part1(&INPUT), 534);
     }
 
     #[test]
+    fn test_example_part2() {
+        let input = "\
+svr: aaa bbb
+aaa: fft
+fft: ccc
+bbb: tty
+tty: ccc
+ccc: ddd eee
+ddd: hub
+hub: fff
+eee: dac
+dac: fff
+fff: ggg hhh
+ggg: out
+hhh: out";
+        assert_eq!(part2(input), 2);
+    }
+
+
+    #[test]
     fn test_part2() {
-        todo!("day11 - test - part2")
+        assert_eq!(part2(&INPUT), 499645520864100);
     }
 }
