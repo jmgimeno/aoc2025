@@ -1,5 +1,6 @@
 use bit_set::BitSet;
 use common::read_file_as_elements;
+use microlp::{ComparisonOp, OptimizationDirection, Problem};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{HashSet, VecDeque};
@@ -95,40 +96,6 @@ impl Machine {
         unreachable!("No solution found")
     }
 
-    fn min_steps_to_joltage(&self) -> usize {
-        let initial_joltages = vec![0; self.joltage_requirements.len()];
-        let mut queue = VecDeque::new();
-        let mut explored = HashSet::new();
-        explored.insert(initial_joltages.clone());
-        queue.push_back((0, initial_joltages));
-        while let Some((steps, joltages)) = queue.pop_front() {
-            if joltages == self.joltage_requirements {
-                return steps;
-            }
-            self.button_wiring
-                .iter()
-                .filter_map(|wiring| {
-                    let mut neighbor = joltages.clone();
-                    wiring.iter().for_each(|&i| {
-                        neighbor[i] += 1;
-                    });
-                    if !explored.contains(&neighbor)
-                        && neighbor
-                            .iter()
-                            .enumerate()
-                            .all(|(i, &j)| j <= self.joltage_requirements[i])
-                    {
-                        explored.insert(neighbor.clone());
-                        Some(neighbor)
-                    } else {
-                        None
-                    }
-                })
-                .for_each(|neighbor| queue.push_back((steps + 1, neighbor)));
-        }
-        unreachable!("No solution found")
-    }
-
     fn target_as_bitset(value: Vec<bool>) -> BitSet {
         let mut bitset = BitSet::with_capacity(value.len());
         for (i, value) in value.into_iter().enumerate() {
@@ -138,14 +105,35 @@ impl Machine {
         }
         bitset
     }
+
+    fn min_steps_to_joltage(&self) -> u32 {
+        let mut problem = Problem::new(OptimizationDirection::Minimize);
+        let max_presses = self.joltage_requirements.iter().max().unwrap();
+        let buttons = self
+            .button_wiring
+            .iter()
+            .map(|_| problem.add_integer_var(1.0, (0, *max_presses as i32)))
+            .collect::<Vec<_>>();
+        for (i, &target) in self.joltage_requirements.iter().enumerate() {
+            let in_buttons = self
+                .button_wiring
+                .iter()
+                .enumerate()
+                .filter_map(|(j, wiring)| wiring.contains(&i).then_some((buttons[j], 1.0)))
+                .collect::<Vec<_>>();
+            problem.add_constraint(in_buttons, ComparisonOp::Eq, target as f64)
+        }
+        let solution = problem.solve().unwrap();
+        solution.objective().round() as u32
+    }
 }
 
 pub fn part1(machines: &[Machine]) -> usize {
     machines.iter().map(Machine::min_steps_to_target).sum()
 }
 
-pub fn part2(_machines: &[Machine]) -> usize {
-    _machines.iter().map(Machine::min_steps_to_joltage).sum()
+pub fn part2(machines: &[Machine]) -> u32 {
+    machines.iter().map(Machine::min_steps_to_joltage).sum()
 }
 
 #[cfg(test)]
@@ -179,6 +167,33 @@ mod tests {
     }
 
     #[test]
+    fn test_part2_machine1_manual() {
+        let mut problem = Problem::new(OptimizationDirection::Minimize);
+        let b0 = problem.add_integer_var(1.0, (0, 7));
+        let b1 = problem.add_integer_var(1.0, (0, 7));
+        let b2 = problem.add_integer_var(1.0, (0, 7));
+        let b3 = problem.add_integer_var(1.0, (0, 7));
+        let b4 = problem.add_integer_var(1.0, (0, 7));
+        let b5 = problem.add_integer_var(1.0, (0, 7));
+
+        problem.add_constraint(&[(b4, 1.0), (b5, 1.0)], ComparisonOp::Eq, 3.0);
+        problem.add_constraint(&[(b1, 1.0), (b5, 1.0)], ComparisonOp::Eq, 5.0);
+        problem.add_constraint(&[(b2, 1.0), (b3, 1.0), (b4, 1.0)], ComparisonOp::Eq, 4.0);
+        problem.add_constraint(&[(b0, 1.0), (b1, 1.0), (b3, 1.0)], ComparisonOp::Eq, 7.0);
+
+        let solution = problem.solve().unwrap();
+        println!("Solution = {}", solution.objective());
+        println!("b0 = {}", solution[b0]);
+        println!("b1 = {}", solution[b1]);
+        println!("b2 = {}", solution[b2]);
+        println!("b3 = {}", solution[b3]);
+        println!("b4 = {}", solution[b4]);
+        println!("b5 = {}", solution[b5]);
+
+        assert_eq!(solution.objective() as u32, 10);
+    }
+
+    #[test]
     fn test_part2_machine1() {
         let input = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}";
         let machine = input.parse::<Machine>().unwrap();
@@ -201,6 +216,6 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        todo!("day10 - test - part2")
+        assert_eq!(part2(&INPUT), 17214);
     }
 }

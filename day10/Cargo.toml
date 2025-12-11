@@ -9,6 +9,7 @@ doctest = false
 [dependencies]
 bit-set = "0.8.0"
 common.workspace = true
+microlp = "0.2.11"
 once_cell.workspace = true
 regex = "1.12.2"
 
