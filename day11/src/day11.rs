@@ -6,46 +6,94 @@ pub static INPUT: Lazy<String> =
     Lazy::new(|| read_file_as_string("data/day11.txt").expect("Failed to load input"));
 
 struct Rack {
-    outputs: HashMap<String, Vec<String>>,
+    index: HashMap<String, usize>,
+    outputs: Vec<Vec<usize>>,
 }
 
 impl Rack {
     fn new(input: &str) -> Self {
-        let mut outputs = HashMap::new();
+        let mut index = HashMap::new();
+        let mut outputs = Vec::new();
+
         for line in input.lines() {
-            let parts1 = line.split(':').collect::<Vec<&str>>();
-            let parts2 = parts1[1]
-                .split_whitespace()
-                .map(|s| s.to_string())
-                .collect::<Vec<_>>();
-            outputs.insert(parts1[0].to_string(), parts2.to_vec());
+            let parts = line.split(':').collect::<Vec<_>>();
+            let from = parts[0].trim();
+            let from_i = intern(from, &mut index, &mut outputs);
+
+            let targets = parts
+                .get(1)
+                .map(|s| s.split_whitespace())
+                .into_iter()
+                .flatten();
+            for t in targets {
+                let to_i = intern(t, &mut index, &mut outputs);
+                outputs[from_i].push(to_i);
+            }
         }
-        Self { outputs }
+
+        Self {
+            index,
+            outputs,
+        }
     }
 
-    fn count_paths<'a>(&self, from: &'a str, to: &'a str) -> usize {
-        let mut path = Vec::new();
+    fn count_paths(&self, from: &str, to: &str) -> usize {
+        // NOTE: I don't need to store the current path for the given data !!
+        let &from_i = match self.index.get(from) {
+            Some(i) => i,
+            None => return 0,
+        };
+        let &to_i = match self.index.get(to) {
+            Some(i) => i,
+            None => return 0,
+        };
         let mut cache = HashMap::new();
-        Self::count_paths_inner(self, from, to, &mut path, &mut cache)
+        Self::count_paths_inner(self, from_i, to_i, &mut cache)
     }
 
-    fn count_paths_inner<'a>(&self, from: &'a str, to: &'a str, path: &mut Vec<String>, cache: &mut HashMap<(String, String), usize>) -> usize {
+    fn count_paths_inner(
+        &self,
+        from: usize,
+        to: usize,
+        cache: &mut HashMap<(usize, usize), usize>,
+    ) -> usize {
         if from == to {
-            1
-        } else if cache.contains_key(&(from.to_string(), to.to_string())) {
-            cache[&(from.to_string(), to.to_string())]
-        } else {
-            path.push(from.to_string());
-            let sum = self
-                .outputs
-                .get(from)
-                .unwrap_or(&Vec::new())
-                .iter()
-                .filter_map(|s| (!path.contains(s)).then_some(self.count_paths_inner(s, to, path, cache)))
-                .sum();
-            cache.insert((from.to_string(), to.to_string()), sum);
-            path.pop();
-            sum
+            return 1;
+        }
+        if let Some(&v) = cache.get(&(from, to)) {
+            return v;
+        }
+
+        let sum: usize = self
+            .outputs
+            .get(from)
+            .map(|v| {
+                v.iter()
+                    .filter_map(|&s| {
+                        Some(self.count_paths_inner(s, to, cache))
+                    })
+                    .sum()
+            })
+            .unwrap_or(0);
+
+        cache.insert((from, to), sum);
+        sum
+    }
+}
+
+fn intern(
+    s: &str,
+    index: &mut HashMap<String, usize>,
+    outputs: &mut Vec<Vec<usize>>,
+) -> usize {
+    use std::collections::hash_map::Entry;
+    let i = index.len(); // cannot borrow after
+    match index.entry(s.to_string()) {
+        Entry::Occupied(o) => *o.get(),
+        Entry::Vacant(v) => {
+            v.insert(i);
+            outputs.push(Vec::new());
+            i
         }
     }
 }
@@ -114,7 +162,6 @@ ggg: out
 hhh: out";
         assert_eq!(part2(input), 2);
     }
-
 
     #[test]
     fn test_part2() {
