@@ -8,6 +8,7 @@ pub static INPUT: Lazy<String> =
 const SHAPE_SIDE: usize = 3;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+// matrix of filled (true) and empty (false)
 struct Shape([[bool; SHAPE_SIDE]; SHAPE_SIDE]);
 
 impl Shape {
@@ -45,59 +46,11 @@ impl Shape {
 }
 
 #[derive(Debug, Clone)]
-struct Region {
-    width: usize,
-    height: usize,
-    quantities: Vec<u8>,
-}
-
-impl Region {
-    fn new(width: usize, height: usize, quantities: Vec<u8>) -> Self {
-        Self {
-            width,
-            height,
-            quantities,
-        }
-    }
-
-    fn sorted_indexes(&self) -> Vec<usize> {
-        let mut indices = (0..self.quantities.len()).collect::<Vec<_>>();
-        indices.sort_by_key(|&i| -(self.quantities[i] as i8));
-        indices
-    }
-}
-
-#[derive(Debug)]
-struct ParsedProblem {
-    shapes: Vec<Shape>,
-    regions: Vec<Region>,
-}
-
-impl ParsedProblem {
-    fn new(shapes: Vec<Shape>, regions: Vec<Region>) -> Self {
-        Self { shapes, regions }
-    }
-}
-
-#[derive(Debug)]
 struct Problem {
-    shape_permutations: Vec<HashSet<Shape>>,
-    regions: Vec<Region>,
-}
-
-impl From<ParsedProblem> for Problem {
-    fn from(parsed: ParsedProblem) -> Self {
-        let shape_permutations = parsed
-            .shapes
-            .into_iter()
-            .map(|shape| shape.different_permutations())
-            .collect();
-        let regions = parsed.regions;
-        Self {
-            shape_permutations,
-            regions,
-        }
-    }
+    width: usize,               // width of the region to fill
+    height: usize,              // heigh of the region
+    quantities: Vec<u8>,        // quantity of each shape needed
+    sorted_indexes: Vec<usize>, // indices sorted by decreasing quantity
 }
 
 struct State {
@@ -111,6 +64,113 @@ impl State {
             shape_counter: vec![0; shapes],
             region_state: vec![vec![false; width]; height],
         }
+    }
+
+    fn is_solution(&self) -> bool {
+        self.shape_counter.iter().all(|&i| i == 0)
+    }
+
+    fn admits(&self, x: usize, y: usize, s: &Shape) -> bool {
+        todo!()
+    }
+
+    fn mark(&mut self, x: usize, y: usize, s: &Shape) {
+        todo!()
+    }
+
+    fn unmark(&mut self, x: usize, y: usize, s: &Shape) {
+        todo!()
+    }
+}
+
+impl Problem {
+    fn new(width: usize, height: usize, quantities: Vec<u8>) -> Self {
+        let mut sorted_indexes = (0..quantities.len()).collect::<Vec<_>>();
+        sorted_indexes.sort_by_key(|&i| -(quantities[i] as i8));
+        Self {
+            width,
+            height,
+            quantities,
+            sorted_indexes,
+        }
+    }
+
+    fn possible_coordinates(&self) -> impl Iterator<Item = (usize, usize)> {
+        (0..self.width - SHAPE_SIDE)
+            .flat_map(|x| (0..self.height - SHAPE_SIDE).map(move |y| (y, x)))
+    }
+
+    fn can_fit(&self, permutations: &Vec<HashSet<Shape>>) -> bool {
+        let mut state = State::new(self.width, self.height, permutations.len());
+        self.can_fit_rec(&mut state, &permutations)
+    }
+
+    fn can_fit_rec(&self, state: &mut State, permutations: &Vec<HashSet<Shape>>) -> bool {
+        if state.is_solution() {
+            true
+        } else {
+            for &i in self.sorted_indexes.iter() {
+                if (state.shape_counter[i] > 0) {
+                    for shape in permutations[i].iter() {
+                        for (x, y) in self.possible_coordinates() {
+                            if state.admits(x, y, shape) {
+                                state.mark(x, y, shape);
+                                state.shape_counter[i] -= 1;
+                                if self.can_fit_rec(state, permutations) {
+                                    return true;
+                                }
+                                state.shape_counter[i] += 1;
+                                state.unmark(x, y, shape);
+                            }
+                        }
+                    }
+                }
+            }
+            false
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ParsedProblems {
+    shapes: Vec<Shape>,     // vec with all the shapes (shape i at position i)
+    problems: Vec<Problem>, // problems to solve
+}
+
+impl ParsedProblems {
+    fn new(shapes: Vec<Shape>, regions: Vec<Problem>) -> Self {
+        Self {
+            shapes,
+            problems: regions,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Problems {
+    shape_permutations: Vec<HashSet<Shape>>, // for shape i, all its possible rotations and flips
+    problems: Vec<Problem>,                  // vec of problems to test
+}
+
+impl From<ParsedProblems> for Problems {
+    fn from(parsed: ParsedProblems) -> Self {
+        Self {
+            shape_permutations: parsed
+                .shapes
+                .into_iter()
+                .map(|shape| shape.different_permutations())
+                .collect(),
+            problems: parsed.problems,
+        }
+    }
+}
+
+impl Problems {
+    fn count_solvable(&self) -> usize {
+        self.problems
+            .iter()
+            .filter(|problem| problem.can_fit(&self.shape_permutations))
+            .count()
     }
 }
 
@@ -136,16 +196,16 @@ mod tests {
         let shape5 = Shape([[true, true, true], [true, false, true], [true, true, true]]);
         let shapes = vec![shape0, shape1, shape2, shape3, shape4, shape5];
 
-        let region0 = Region::new(4, 4, vec![0, 0, 0, 0, 2, 0]);
-        let region1 = Region::new(12, 5, vec![1, 0, 1, 0, 2, 2]);
-        let region2 = Region::new(12, 5, vec![1, 0, 1, 0, 3, 2]);
+        let region0 = Problem::new(4, 4, vec![0, 0, 0, 0, 2, 0]);
+        let region1 = Problem::new(12, 5, vec![1, 0, 1, 0, 2, 2]);
+        let region2 = Problem::new(12, 5, vec![1, 0, 1, 0, 3, 2]);
         let regions = vec![region0, region1, region2];
 
-        let parsed = ParsedProblem::new(shapes, regions);
+        let parsed = ParsedProblems::new(shapes, regions);
 
         println!("Parsed: {:?}", parsed);
 
-        let problem = Problem::from(parsed);
+        let problem = Problems::from(parsed);
 
         println!("Problem: {:?}", problem);
     }
@@ -201,7 +261,9 @@ mod tests {
 
         assert_eq!(
             shape0.different_permutations(),
-            vec![shape0, p1, p2, p3, p4, p5, p6, p7].into_iter().collect()
+            vec![shape0, p1, p2, p3, p4, p5, p6, p7]
+                .into_iter()
+                .collect()
         )
     }
 
