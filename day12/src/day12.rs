@@ -47,11 +47,12 @@ impl Shape {
 
 #[derive(Debug, Clone)]
 struct Problem {
-    width: usize,               // width of the region to fill
-    height: usize,              // heigh of the region
-    quantities: Vec<u8>,        // quantity of each shape needed
+    width: usize,        // width of the region to fill
+    height: usize,       // heigh of the region
+    quantities: Vec<u8>, // quantity of each shape needed
 }
 
+#[derive(Clone)]
 struct State {
     quantities: Vec<u8>,
     available: Vec<Vec<bool>>,
@@ -72,7 +73,7 @@ impl State {
     fn admits(&self, x: usize, y: usize, s: &Shape) -> bool {
         for dx in 0..SHAPE_SIDE {
             for dy in 0..SHAPE_SIDE {
-                if s.0[dy][dx] && !self.available[y+dy][x+dx] {
+                if s.0[dy][dx] && !self.available[y + dy][x + dx] {
                     return false;
                 }
             }
@@ -84,7 +85,7 @@ impl State {
         for dx in 0..SHAPE_SIDE {
             for dy in 0..SHAPE_SIDE {
                 if s.0[dy][dx] {
-                    self.available[y+dy][x+dx] = false;
+                    self.available[y + dy][x + dx] = false;
                 }
             }
         }
@@ -94,10 +95,17 @@ impl State {
         for dx in 0..SHAPE_SIDE {
             for dy in 0..SHAPE_SIDE {
                 if s.0[dy][dx] {
-                    self.available[y+dy][x+dx] = true;
+                    self.available[y + dy][x + dx] = true;
                 }
             }
         }
+    }
+
+    fn _advance(&self, x: usize, y: usize, s: &Shape, i: usize) -> Self {
+        let mut new_state = self.clone();
+        new_state.mark(x, y, s);
+        new_state.quantities[i] -= 1;
+        new_state
     }
 }
 
@@ -111,28 +119,29 @@ impl Problem {
     }
 
     fn possible_coordinates(&self) -> impl Iterator<Item = (usize, usize)> {
-        (0..self.width - SHAPE_SIDE)
-            .flat_map(|x| (0..self.height - SHAPE_SIDE)
-                .map(move |y| (y, x)))
+        (0..=self.width - SHAPE_SIDE)
+            .flat_map(|x| (0..=self.height - SHAPE_SIDE).map(move |y| (x, y)))
     }
 
     fn can_fit(&self, permutations: &Vec<HashSet<Shape>>) -> bool {
         let mut state = State::new(self.width, self.height, self.quantities.clone());
-        self.can_fit_rec(&mut state, &permutations)
+        let mut order = (0..self.quantities.len()).collect::<Vec<_>>();
+        order.sort_by_key(|&i| -(self.quantities[i] as i8));
+        dbg!(self.can_fit_rec(&mut state, &permutations, &order))
     }
 
-    fn can_fit_rec(&self, state: &mut State, permutations: &Vec<HashSet<Shape>>) -> bool {
+    fn can_fit_rec(&self, state: &mut State, permutations: &Vec<HashSet<Shape>>, order: &Vec<usize>) -> bool {
         if state.is_solution() {
             true
         } else {
-            for i in 0..state.quantities.len() {
+            for &i in order.iter() {
                 if state.quantities[i] > 0 {
                     for shape in permutations[i].iter() {
                         for (x, y) in self.possible_coordinates() {
                             if state.admits(x, y, shape) {
                                 state.mark(x, y, shape);
                                 state.quantities[i] -= 1;
-                                if self.can_fit_rec(state, permutations) {
+                                if self.can_fit_rec(state, permutations, order) {
                                     return true;
                                 }
                                 state.quantities[i] += 1;
@@ -190,7 +199,7 @@ impl Problems {
     }
 }
 
-fn parse_problems(input: &str) -> ParsedProblems {
+fn parse_problems(_input: &str) -> ParsedProblems {
     todo!()
 }
 
