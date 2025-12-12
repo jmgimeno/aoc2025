@@ -50,58 +50,74 @@ struct Problem {
     width: usize,               // width of the region to fill
     height: usize,              // heigh of the region
     quantities: Vec<u8>,        // quantity of each shape needed
-    sorted_indexes: Vec<usize>, // indices sorted by decreasing quantity
 }
 
 struct State {
-    shape_counter: Vec<u8>,
-    region_state: Vec<Vec<bool>>,
+    quantities: Vec<u8>,
+    available: Vec<Vec<bool>>,
 }
 
 impl State {
-    fn new(width: usize, height: usize, shapes: usize) -> Self {
+    fn new(width: usize, height: usize, quantities: Vec<u8>) -> Self {
         Self {
-            shape_counter: vec![0; shapes],
-            region_state: vec![vec![false; width]; height],
+            quantities,
+            available: vec![vec![true; width]; height],
         }
     }
 
     fn is_solution(&self) -> bool {
-        self.shape_counter.iter().all(|&i| i == 0)
+        self.quantities.iter().all(|&i| i == 0)
     }
 
     fn admits(&self, x: usize, y: usize, s: &Shape) -> bool {
-        todo!()
+        for dx in 0..SHAPE_SIDE {
+            for dy in 0..SHAPE_SIDE {
+                if s.0[dy][dx] && !self.available[y+dy][x+dx] {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     fn mark(&mut self, x: usize, y: usize, s: &Shape) {
-        todo!()
+        for dx in 0..SHAPE_SIDE {
+            for dy in 0..SHAPE_SIDE {
+                if s.0[dy][dx] {
+                    self.available[y+dy][x+dx] = false;
+                }
+            }
+        }
     }
 
     fn unmark(&mut self, x: usize, y: usize, s: &Shape) {
-        todo!()
+        for dx in 0..SHAPE_SIDE {
+            for dy in 0..SHAPE_SIDE {
+                if s.0[dy][dx] {
+                    self.available[y+dy][x+dx] = true;
+                }
+            }
+        }
     }
 }
 
 impl Problem {
     fn new(width: usize, height: usize, quantities: Vec<u8>) -> Self {
-        let mut sorted_indexes = (0..quantities.len()).collect::<Vec<_>>();
-        sorted_indexes.sort_by_key(|&i| -(quantities[i] as i8));
         Self {
             width,
             height,
             quantities,
-            sorted_indexes,
         }
     }
 
     fn possible_coordinates(&self) -> impl Iterator<Item = (usize, usize)> {
         (0..self.width - SHAPE_SIDE)
-            .flat_map(|x| (0..self.height - SHAPE_SIDE).map(move |y| (y, x)))
+            .flat_map(|x| (0..self.height - SHAPE_SIDE)
+                .map(move |y| (y, x)))
     }
 
     fn can_fit(&self, permutations: &Vec<HashSet<Shape>>) -> bool {
-        let mut state = State::new(self.width, self.height, permutations.len());
+        let mut state = State::new(self.width, self.height, self.quantities.clone());
         self.can_fit_rec(&mut state, &permutations)
     }
 
@@ -109,17 +125,17 @@ impl Problem {
         if state.is_solution() {
             true
         } else {
-            for &i in self.sorted_indexes.iter() {
-                if (state.shape_counter[i] > 0) {
+            for i in 0..state.quantities.len() {
+                if state.quantities[i] > 0 {
                     for shape in permutations[i].iter() {
                         for (x, y) in self.possible_coordinates() {
                             if state.admits(x, y, shape) {
                                 state.mark(x, y, shape);
-                                state.shape_counter[i] -= 1;
+                                state.quantities[i] -= 1;
                                 if self.can_fit_rec(state, permutations) {
                                     return true;
                                 }
-                                state.shape_counter[i] += 1;
+                                state.quantities[i] += 1;
                                 state.unmark(x, y, shape);
                             }
                         }
@@ -174,8 +190,14 @@ impl Problems {
     }
 }
 
-pub fn part1(_input: &str) -> usize {
-    todo!("day12 - part1")
+fn parse_problems(input: &str) -> ParsedProblems {
+    todo!()
+}
+
+pub fn part1(input: &str) -> usize {
+    let parsed = parse_problems(input);
+    let problems = Problems::from(parsed);
+    problems.count_solvable()
 }
 
 pub fn part2(_input: &str) -> usize {
@@ -193,21 +215,28 @@ mod tests {
         let shape2 = Shape([[false, true, true], [true, true, true], [true, true, false]]);
         let shape3 = Shape([[true, true, false], [true, true, true], [true, true, false]]);
         let shape4 = Shape([[true, true, true], [true, false, false], [true, true, true]]);
-        let shape5 = Shape([[true, true, true], [true, false, true], [true, true, true]]);
+        let shape5 = Shape([[true, true, true], [false, true, false], [true, true, true]]);
         let shapes = vec![shape0, shape1, shape2, shape3, shape4, shape5];
 
         let region0 = Problem::new(4, 4, vec![0, 0, 0, 0, 2, 0]);
         let region1 = Problem::new(12, 5, vec![1, 0, 1, 0, 2, 2]);
         let region2 = Problem::new(12, 5, vec![1, 0, 1, 0, 3, 2]);
-        let regions = vec![region0, region1, region2];
 
-        let parsed = ParsedProblems::new(shapes, regions);
+        // region 0 is solvable
+        let regions = vec![region0];
+        let parsed = ParsedProblems::new(shapes.clone(), regions);
+        let problems = Problems::from(parsed);
+        assert_eq!(problems.count_solvable(), 1);
 
-        println!("Parsed: {:?}", parsed);
+        let regions = vec![region1];
+        let parsed = ParsedProblems::new(shapes.clone(), regions);
+        let problems = Problems::from(parsed);
+        assert_eq!(problems.count_solvable(), 1);
 
-        let problem = Problems::from(parsed);
-
-        println!("Problem: {:?}", problem);
+        let regions = vec![region2];
+        let parsed = ParsedProblems::new(shapes.clone(), regions);
+        let problems = Problems::from(parsed);
+        assert_eq!(problems.count_solvable(), 0);
     }
 
     #[test]
