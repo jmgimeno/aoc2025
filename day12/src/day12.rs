@@ -13,10 +13,9 @@ struct Problem {
 
 #[derive(Debug)]
 struct ParsedProblems {
-    num_of_hashes: Vec<usize>,  // #'s in the corresponding figure
+    num_of_hashes: Vec<usize>, // #'s in the corresponding figure
     problems: Vec<Problem>,
 }
-
 
 fn parse_problems(input: &str) -> ParsedProblems {
     let lines: Vec<&str> = input.lines().collect();
@@ -40,7 +39,9 @@ fn parse_problems(input: &str) -> ParsedProblems {
                     let shape_line = lines[i].trim();
                     for (col, ch) in shape_line.chars().enumerate() {
                         if col < 3 {
-                            if ch == '#' { filled += 1; };
+                            if ch == '#' {
+                                filled += 1;
+                            };
                         }
                     }
                     i += 1;
@@ -66,28 +67,50 @@ fn parse_problems(input: &str) -> ParsedProblems {
                 .map(|s| s.parse::<usize>().unwrap())
                 .collect();
 
-            problems.push(Problem { width, height, quantities });
+            problems.push(Problem {
+                width,
+                height,
+                quantities,
+            });
             i += 1;
         } else {
             i += 1;
         }
     }
 
-    ParsedProblems { num_of_hashes, problems }
+    ParsedProblems {
+        num_of_hashes,
+        problems,
+    }
 }
 
 pub fn part1(input: &str) -> usize {
-    let ParsedProblems { num_of_hashes, problems } = parse_problems(input);
+    let ParsedProblems {
+        num_of_hashes,
+        problems,
+    } = parse_problems(input);
     problems
         .iter()
         .filter(|problem| {
             let total_size = problem.width * problem.height;
             let total_hashes = problem
-                .quantities.iter()
+                .quantities
+                .iter()
                 .zip(num_of_hashes.iter())
                 .map(|(quantity, filled)| quantity * filled)
-                .sum();
-            total_size >= total_hashes
+                .sum::<usize>();
+            let trivially_impossible = total_hashes > total_size;
+
+            let max_nonoverlapping_shapes = (problem.width / 3) * (problem.height / 3);
+            let trivially_solvable = problem.quantities.iter().sum::<usize>() <= max_nonoverlapping_shapes;
+
+            if trivially_solvable {
+                true
+            } else if trivially_impossible {
+                false
+            } else {
+                unreachable!("This case is too much difficult to handle.")
+            }
         })
         .count()
 }
