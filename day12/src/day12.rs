@@ -102,7 +102,8 @@ pub fn part1(input: &str) -> usize {
             let trivially_impossible = total_hashes > total_size;
 
             let max_nonoverlapping_shapes = (problem.width / 3) * (problem.height / 3);
-            let trivially_solvable = problem.quantities.iter().sum::<usize>() <= max_nonoverlapping_shapes;
+            let total_shapes = problem.quantities.iter().sum::<usize>();
+            let trivially_solvable = total_shapes <= max_nonoverlapping_shapes;
 
             if trivially_solvable {
                 true
