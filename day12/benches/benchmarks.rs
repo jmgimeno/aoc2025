@@ -1,4 +1,4 @@
-use day12::day12::{INPUT, part1, part2};
+use day12::day12::{INPUT, part1};
 
 fn main() {
     divan::main()
@@ -7,9 +7,4 @@ fn main() {
 #[divan::bench]
 fn bench_part1() {
     part1(divan::black_box(&INPUT));
-}
-
-#[divan::bench]
-fn bench_part2() {
-    part2(divan::black_box(&INPUT));
 }
