@@ -11,13 +11,50 @@ struct Problem {
     quantities: Vec<usize>, // quantity of each shape needed
 }
 
-fn parse_problems(input: &str) -> Vec<Problem> {
+#[derive(Debug)]
+struct ParsedProblems {
+    num_of_hashes: Vec<usize>,  // #'s in the corresponding figure
+    problems: Vec<Problem>,
+}
+
+
+fn parse_problems(input: &str) -> ParsedProblems {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut num_of_hashes = Vec::new();
     let mut problems = Vec::new();
 
-    for line in input.lines() {
-        let line = line.trim();
+    let mut i = 0;
 
-        if line.contains('x') {
+    // Parse shapes
+    while i < lines.len() {
+        let line = lines[i].trim();
+
+        // Check if this is a shape header (e.g., "0:")
+        if line.ends_with(':') {
+            i += 1;
+
+            // Read the next 3 lines for the 3x3 shape
+            let mut filled = 0;
+            for _ in 0..3 {
+                if i < lines.len() {
+                    let shape_line = lines[i].trim();
+                    for (col, ch) in shape_line.chars().enumerate() {
+                        if col < 3 {
+                            if ch == '#' { filled += 1; };
+                        }
+                    }
+                    i += 1;
+                }
+            }
+
+            num_of_hashes.push(filled);
+
+            // Skip empty line after shape
+            if i < lines.len() && lines[i].trim().is_empty() {
+                i += 1;
+            }
+        } else if line.contains('x') {
+            // Parse region line (e.g., "4x4: 0 0 0 0 2 0")
             let parts: Vec<&str> = line.split(':').collect();
             let dimensions: Vec<&str> = parts[0].trim().split('x').collect();
             let width = dimensions[0].parse::<usize>().unwrap();
@@ -29,21 +66,28 @@ fn parse_problems(input: &str) -> Vec<Problem> {
                 .map(|s| s.parse::<usize>().unwrap())
                 .collect();
 
-            problems.push(Problem {
-                width,
-                height,
-                quantities,
-            });
+            problems.push(Problem { width, height, quantities });
+            i += 1;
+        } else {
+            i += 1;
         }
     }
-    problems
+
+    ParsedProblems { num_of_hashes, problems }
 }
 
 pub fn part1(input: &str) -> usize {
-    parse_problems(input)
+    let ParsedProblems { num_of_hashes, problems } = parse_problems(input);
+    problems
         .iter()
         .filter(|problem| {
-            problem.width * problem.height >= 9 * problem.quantities.iter().sum::<usize>()
+            let total_size = problem.width * problem.height;
+            let total_hashes = problem
+                .quantities.iter()
+                .zip(num_of_hashes.iter())
+                .map(|(quantity, filled)| quantity * filled)
+                .sum();
+            total_size >= total_hashes
         })
         .count()
 }
