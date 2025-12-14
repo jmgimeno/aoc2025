@@ -1,8 +1,9 @@
 use common::read_file_as_elements;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
+use std::cmp::PartialEq;
 use std::collections::BTreeMap;
-use std::ops::Bound::Excluded;
+use std::ops::Bound::Included;
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 
@@ -20,6 +21,34 @@ impl Point {
         let width = (self.x - other.x).abs() as u64 + 1;
         let height = (self.y - other.y).abs() as u64 + 1;
         width * height
+    }
+
+    fn up_left(&self) -> Point {
+        Point {
+            x: self.x - 1,
+            y: self.y - 1,
+        }
+    }
+
+    fn up_right(&self) -> Point {
+        Point {
+            x: self.x + 1,
+            y: self.y - 1,
+        }
+    }
+
+    fn down_left(&self) -> Point {
+        Point {
+            x: self.x - 1,
+            y: self.y + 1,
+        }
+    }
+
+    fn down_right(&self) -> Point {
+        Point {
+            x: self.x + 1,
+            y: self.y + 1,
+        }
     }
 }
 
@@ -87,17 +116,100 @@ pub fn part1(tiles: &[Point]) -> u64 {
     max_area
 }
 
+#[derive(PartialEq, Debug)]
+enum SegmentOrientation {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+impl SegmentOrientation {
+    fn from_points(p1: &Point, p2: &Point) -> Self {
+        assert_ne!(p1, p2, "Cannot create orientation from identical points");
+        assert!(p1.x == p2.x || p1.y == p2.y, "Points share a common axis");
+        if p1.x == p2.x {
+            if p1.y < p2.y {
+                SegmentOrientation::Down
+            } else {
+                SegmentOrientation::Up
+            }
+        } else {
+            if p1.x < p2.x {
+                SegmentOrientation::Right
+            } else {
+                SegmentOrientation::Left
+            }
+        }
+    }
+}
+
+fn boundary_vertices(tiles: &[Point]) -> Vec<Point> {
+    let mut exterior = Vec::with_capacity(tiles.len());
+    let tiles = guarantee_exterior_on_the_left(tiles);
+    exterior.push(tiles[0].up_left());
+    for (p1, p2, p3) in tiles.iter().tuple_windows() {
+        // Invariant: Segment p1 p2 has its exterior on its left
+        let in_step = SegmentOrientation::from_points(p1, p2);
+        let out_step = SegmentOrientation::from_points(p2, p3);
+        let outside_point = match (in_step, out_step) {
+            (SegmentOrientation::Right, SegmentOrientation::Up) => &p2.up_left(),
+            (SegmentOrientation::Right, SegmentOrientation::Down) => &p2.up_right(),
+            (SegmentOrientation::Left, SegmentOrientation::Up) => &p2.down_left(),
+            (SegmentOrientation::Left, SegmentOrientation::Down) => &p2.down_right(),
+            (SegmentOrientation::Up, SegmentOrientation::Right) => &p2.up_left(),
+            (SegmentOrientation::Up, SegmentOrientation::Left) => &p2.down_left(),
+            (SegmentOrientation::Down, SegmentOrientation::Right) => &p2.up_right(),
+            (SegmentOrientation::Down, SegmentOrientation::Left) => &p2.down_right(),
+            _ => panic!("Line does not a zig-zag: {:?} {:?} {:?}", p1, p2, p3),
+        };
+        exterior.push(*outside_point);
+    }
+    exterior
+}
+
+fn find_lexicographic_first_tile_index(tiles: &[Point]) -> usize {
+    assert!(!tiles.is_empty(), "tiles must not be empty to find start");
+    let mut idx = 0;
+    for next in 1..tiles.len() {
+        if tiles[next].x < tiles[idx].x {
+            idx = next;
+        } else if tiles[next].x == tiles[idx].x && tiles[next].y < tiles[idx].y {
+            idx = next;
+        }
+    }
+    idx
+}
+
+fn guarantee_exterior_on_the_left(tiles: &[Point]) -> Vec<Point> {
+    let mut tiles = tiles.to_vec();
+    // We start with a tile we know where its exterior is
+    let start_id = find_lexicographic_first_tile_index(&tiles);
+    // We ensure that it will be the starting point of the tour
+    tiles.rotate_left(start_id);
+    // It will also be the end point of the tour
+    tiles.push(tiles[0]);
+    // We ensure the first movement will be on the left
+    let first_step = SegmentOrientation::from_points(&tiles[0], &tiles[1]);
+    if first_step == SegmentOrientation::Down {
+        tiles.reverse();
+    }
+    tiles
+}
+
+
 struct InsideDetector {
     // for each x it gives the vertical edges at that x
-    vertical_edges: BTreeMap<i32, Vec<RangeInclusive<i32>>>,
+    vertical_bounds: BTreeMap<i32, Vec<RangeInclusive<i32>>>,
     // for each y it gives the horizontal edges at that y
-    horizontal_edges: BTreeMap<i32, Vec<RangeInclusive<i32>>>,
+    horizontal_bounds: BTreeMap<i32, Vec<RangeInclusive<i32>>>,
 }
 
 impl InsideDetector {
-    fn new(points: &[Point]) -> Self {
+    fn new(tiles: &[Point]) -> Self {
+        let boundary_vertices = boundary_vertices(tiles);
         Self {
-            vertical_edges: points
+            vertical_bounds: boundary_vertices
                 .iter()
                 .circular_tuple_windows()
                 .filter_map(|(p1, p2)| {
@@ -108,7 +220,7 @@ impl InsideDetector {
                 .into_iter()
                 .map(|(x, pairs)| (x, pairs.into_iter().map(|(_, r)| r).collect()))
                 .collect::<BTreeMap<_, _>>(),
-            horizontal_edges: points
+            horizontal_bounds: boundary_vertices
                 .iter()
                 .circular_tuple_windows()
                 .filter_map(|(p1, p2)| {
@@ -127,32 +239,27 @@ impl InsideDetector {
         let max_x = p1.x.max(p2.x);
         let min_y = p1.y.min(p2.y);
         let max_y = p1.y.max(p2.y);
-
-        //no collision with any vertical edge
-        (min_x == max_x // range panics otherwise
-                || self
-                .vertical_edges
-                .range((Excluded(min_x), Excluded(max_x)))
-                .flat_map(|(_, ranges)| ranges.iter())
-                .all(|r| max_y <= *r.start() || min_y >= *r.end()))
-        // and no collision with any horizontal edge
-        && (min_y == max_y
-                || self
-                .horizontal_edges
-                .range((Excluded(min_y), Excluded(max_y)))
-                .flat_map(|(_, ranges)| ranges.iter())
-                .all(|r| max_x <= *r.start() || min_x >= *r.end()))
+        //no collision with any vertical bound
+        self
+            .vertical_bounds
+            .range((Included(min_x), Included(max_x)))
+            .flat_map(|(_, ranges)| ranges.iter())
+            .all(|r| max_y <= *r.start() || min_y >= *r.end())
+            // and no collision with any horizontal bound
+            && self
+            .horizontal_bounds
+            .range((Included(min_y), Included(max_y)))
+            .flat_map(|(_, ranges)| ranges.iter())
+            .all(|r| max_x <= *r.start() || min_x >= *r.end())
     }
 }
 
 pub fn part2(tiles: &[Point]) -> u64 {
-    let detector = InsideDetector::new(tiles);
+    let inside_detector = InsideDetector::new(&tiles);
     let mut max_area = 0;
-    for (i, p1) in tiles.iter().enumerate() {
-        for p2 in &tiles[i + 1..] {
-            if detector.is_valid(p1, p2) {
-                max_area = max_area.max(p1.area(&p2));
-            }
+    for (p1, p2) in tiles.iter().tuple_combinations() {
+        if inside_detector.is_valid(p1, p2) {
+            max_area = max_area.max(p1.area(p2));
         }
     }
     max_area
