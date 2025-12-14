@@ -8,7 +8,6 @@ doctest = false
 
 [dependencies]
 common.workspace = true
-indices_union_find = "0.1.2"
 once_cell.workspace = true
 
 [dev-dependencies]

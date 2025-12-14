@@ -235,15 +235,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
-name = "cpx-coords"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed90c9ae84cf87528b73015c8e65a71023d0e5fff9698805f0292a7d8a5f3d98"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "day01"
 version = "0.1.0"
 dependencies = [
@@ -315,7 +306,6 @@ version = "0.1.0"
 dependencies = [
  "common",
  "divan",
- "indices_union_find",
  "once_cell",
 ]
 
@@ -858,16 +848,6 @@ checksum = "0ad4bb2b565bca0645f4d68c5c9af97fba094e9791da685bf83cb5f3ce74acf2"
 dependencies = [
  "equivalent",
  "hashbrown",
-]
-
-[[package]]
-name = "indices_union_find"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d73090b16a560fe357723ac8d31796ede3dd0b4593308068e915d752801ec954"
-dependencies = [
- "cpx-coords",
- "num-traits",
 ]
 
 [[package]]

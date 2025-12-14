@@ -1,5 +1,4 @@
 use common::read_file_as_lines;
-use indices_union_find::UnionFind;
 use once_cell::sync::Lazy;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
@@ -115,6 +114,40 @@ pub fn part2(input: &[String]) -> u64 {
         }
     }
     last_two.unwrap()
+}
+
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        Self {
+            parent: Vec::from_iter(0..n),
+            size: vec![1; n],
+        }
+    }
+
+    fn find(&mut self, i: usize) -> usize {
+        if self.parent[i] != i {
+            self.parent[i] = self.find(self.parent[i]);
+        }
+        self.parent[i]
+    }
+
+    fn union(&mut self, i: usize, j: usize) {
+        let mut pi = self.find(i);
+        let mut pj = self.find(j);
+        if pi != pj {
+            if self.size[pi] < self.size[pj] {
+                std::mem::swap(&mut pi, &mut pj);
+            }
+            self.parent[pj] = pi;
+            self.size[pi] += self.size[pj];
+            self.size[pj] = 0; // needed because I use the sizes to get group sizes
+        }
+    }
 }
 
 #[cfg(test)]
