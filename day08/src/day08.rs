@@ -139,10 +139,7 @@ impl UnionFind {
     fn union(&mut self, i: usize, j: usize) {
         let mut pi = self.find(i);
         let mut pj = self.find(j);
-        if pi != pj {
-            if self.size[pi] < self.size[pj] {
-                std::mem::swap(&mut pi, &mut pj);
-            }
+        if pi != pj { // faster w/o path compression in the example code
             self.parent[pj] = pi;
             self.size[pi] += self.size[pj];
             self.size[pj] = 0; // needed because I use the sizes to get group sizes
